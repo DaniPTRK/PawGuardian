@@ -1,16 +1,32 @@
 version: "3.8"
 
 services:
-  mobylab-app-db:
+  postgres:
     image: postgres:13.2-alpine
     ports:
       - 5432:5432
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: pawguardian
+      POSTGRES_DB: pawguardian
+      POSTGRES_PASSWORD: pawguardian
     volumes:
-      - mobylab-app-db-vol:/var/lib/postgresql/data
+      - postgres-vol:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo-vol:/data/db
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 5050:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pawguardian.com
+      PGADMIN_DEFAULT_PASSWORD: admin
 
 volumes:
-  mobylab-app-db-vol:
+  postgres-vol:
+  mongo-vol:
