@@ -29,7 +29,9 @@ public class RoleService {
         return roleNameList.stream()
                 .filter(name -> roleRepository.findRoleByName(name).isEmpty())
                 .peek(name -> {
-                    Role role = new Role().setName(name);
+                    Role role = Role.builder()
+                            .name(name)
+                            .build();
                     roleRepository.save(role);
                 })
                 .toList();

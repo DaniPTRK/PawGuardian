@@ -1,10 +1,12 @@
 package com.pawguardian.springbackend.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+@Getter
 @Component
 public class LoginResponseDto {
 
@@ -15,18 +17,6 @@ public class LoginResponseDto {
     @JsonProperty("expires_in")
     @Value("${token.ttl}")
     private long expire;
-
-    public String getToken() {
-        return token;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public long getExpire() {
-        return expire;
-    }
 
     public LoginResponseDto setToken(String token) {
         this.token = token;

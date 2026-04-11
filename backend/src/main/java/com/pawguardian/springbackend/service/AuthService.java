@@ -46,13 +46,14 @@ public class AuthService {
         }
 
         List<Role> roleList = new ArrayList<>();
-        roleList.add(roleRepository.findRoleByName("USER").get());
 
-        userRepository.save(new User()
-                .setEmail(registerDto.getEmail())
-                .setPassword(passwordEncoder.encode(registerDto.getPassword()))
-                .setUsername(registerDto.getUsername())
-                .setRoles(roleList));
+        if(roleRepository.findRoleByName("USER").isPresent()) {
+            roleList.add(roleRepository.findRoleByName("USER").get());
+        }
+
+        userRepository.save(User.builder()
+                .email(registerDto.getEmail())
+                .build());
     }
 
     public String login(LoginDto loginDto) {

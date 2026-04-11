@@ -4,15 +4,12 @@ import com.pawguardian.springbackend.entity.Role;
 import com.pawguardian.springbackend.entity.User;
 import com.pawguardian.springbackend.repository.RoleRepository;
 import com.pawguardian.springbackend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Component
 public class ApplicationInitializer implements CommandLineRunner {
@@ -38,7 +35,7 @@ public class ApplicationInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         Optional<User> admin = userRepository.findUserByEmail(adminEmail);
         if (admin.isEmpty()) {
-            List<Role> roleList = new ArrayList<>();
+            Set<Role> roleList = new HashSet<>();
 
             Optional<Role> adminRole = roleRepository.findRoleByName("ADMIN");
             if (adminRole.isEmpty()) {
@@ -46,11 +43,12 @@ public class ApplicationInitializer implements CommandLineRunner {
             }
 
             roleList.add(adminRole.get());
-            User initAdmin = new User()
-                    .setUsername(adminUsername)
-                    .setEmail(adminEmail)
-                    .setPassword(passwordEncoder.encode(adminPassword))
-                    .setRoles(roleList);
+            User initAdmin = User.builder()
+                    .username(adminUsername)
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(adminPassword))
+                    .roles(roleList)
+                    .build();
             userRepository.save(initAdmin);
         }
 

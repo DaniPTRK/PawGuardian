@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +31,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         } else
             throw new UsernameNotFoundException("User not found");
     }
-    private Collection<GrantedAuthority> mapRolesToAuthorities(List<Role> roles){
+    private Collection<GrantedAuthority> mapRolesToAuthorities(Set<Role> roles){
         return roles.stream().map(role->new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
     }
 }
