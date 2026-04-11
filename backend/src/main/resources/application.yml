@@ -2,7 +2,7 @@ spring:
   application:
     name: project
   datasource:
-    url: jdbc:postgresql://localhost:5432/pawguardian
+    url: jdbc:postgresql://localhost:5433/pawguardian
     username: pawguardian
     password: pawguardian
   jpa:
@@ -32,7 +32,7 @@ server:
 
 token:
   ttl: 3600000
-  secret: "https://www.youtube.com/watch?v=VBUMYOYJISc"
+  secret: "https://www.youtube.com/watch?v=v-WC2Y6SyrU"
 
 admin:
   username: admin
