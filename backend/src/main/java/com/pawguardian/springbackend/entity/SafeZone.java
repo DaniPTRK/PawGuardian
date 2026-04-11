@@ -23,6 +23,7 @@ public class SafeZone {
     @NotBlank
     private String zoneName; // this is given by the user
 
+    @Builder.Default
     private boolean isActive = true;
 
     // A pet could have one or more safe zones defined by the user
@@ -34,5 +35,6 @@ public class SafeZone {
     // A safezone is defined by a list of vertices
     @OneToMany(mappedBy = "safeZone", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sequenceOrder ASC")
+    @Builder.Default
     private List<SafeZoneVertex> vertices = new ArrayList<>();
 }

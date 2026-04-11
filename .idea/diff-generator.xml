@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DiffGenerationConfig">
+    <option name="snapshotDb" value="false" />
+    <option name="snapshotModelValue" value="springbackend:entityManagerFactory" />
     <option name="sourceModelValue" value="springbackend:entityManagerFactory" />
     <option name="targetDbValue" value="a157c61b-4099-4e01-b619-7baf1ceb251f" />
   </component>

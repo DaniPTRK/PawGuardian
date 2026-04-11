@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "safe_zone_vertices")
+@Table(name = "safe_zone_vertices", schema="project")
 @Getter
 @Setter
 @NoArgsConstructor
