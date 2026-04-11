@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/backend/src/main/resources/db/migration/V1__INIT.sql" value="a157c61b-4099-4e01-b619-7baf1ceb251f" />
+    <file url="file://$PROJECT_DIR$/backend/src/main/resources/db/migration/V2__Add_Roles.sql" value="a157c61b-4099-4e01-b619-7baf1ceb251f" />
+  </component>
+</project>
