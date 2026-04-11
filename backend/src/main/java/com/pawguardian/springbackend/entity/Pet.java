@@ -20,7 +20,6 @@ public class Pet {
     @NotBlank(message = "Pet's name is required")
     private String name;
 
-    private String species;
     private String breed;
     private Integer age;
 
@@ -28,4 +27,9 @@ public class Pet {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    // each pet is associated to a species
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "species_id", nullable = false)
+    private PetSpecies species;
 }

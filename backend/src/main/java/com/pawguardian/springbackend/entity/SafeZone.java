@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "safe_zones", schema="project")
@@ -32,6 +33,6 @@ public class SafeZone {
 
     // A safezone is defined by a list of vertices
     @OneToMany(mappedBy = "safeZone", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("sequenceOrder ASC") // Important pentru a desena poligonul în ordinea corectă
+    @OrderBy("sequenceOrder ASC")
     private List<SafeZoneVertex> vertices = new ArrayList<>();
 }

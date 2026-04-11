@@ -6,7 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "users", schema = "project")
@@ -33,8 +35,14 @@ public class User {
     @NotBlank
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    private Role role; // owner or vet
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_role",
+        schema = "project",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
     // a user can have one or more pets
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
