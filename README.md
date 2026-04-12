@@ -1,18 +1,22 @@
-# MobyLabWebProgramming
+# PawGuardian
 
-This is an example application to teach students the basics of web programming.
+To start working with the backend, run the following command in the project root to launch the PostgreSQL, MongoDB, and PgAdmin:
 
-To start working with the backend install docker and docker compose from https://docs.docker.com/engine/install/ and enter the command below to launch the Postgresql database while in the Deployment folder:
-
-```shell showLineNumbers
-docker-compose -f .\docker-compose.yml -p mobylab-app-db up -d
+```shell
+docker compose up -d
 ```
 
-You can use PGAdmin (https://www.pgadmin.org/) or DBeaver (https://dbeaver.io/download/) to access the database on localhost:5432 with database/user/password "postgres".
+You can use PGAdmin at http://localhost:5050 (email: `admin@pawguardian.com`, password: `admin`) to access the database on `localhost:5432` with database/user/password `pawguardian`.
 
-In order to run the application you need to have maven installed (https://maven.apache.org/install.html) and run the following commands:
+To run the backend you need Maven installed. Run the following commands from the `backend/` directory:
 
-```shell showLineNumbers
+```shell
 mvn clean install
 mvn spring-boot:run
+```
+
+or
+```shell
+./mvnw clean install
+./mvnw spring-boot:run
 ```
