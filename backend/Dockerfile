@@ -1,4 +1,17 @@
-FROM ubuntu:latest
-LABEL authors="daniel-ion"
+# build stage
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
+WORKDIR /app
 
-ENTRYPOINT ["top", "-b"]
+COPY pom.xml .
+COPY src ./src
+# build jar file
+RUN mvn clean package -DskipTests
+
+# run stage
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
+
+# get generated jar
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

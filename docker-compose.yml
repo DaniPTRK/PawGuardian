@@ -4,29 +4,65 @@ services:
   postgres:
     image: postgres:13.2-alpine
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       POSTGRES_USER: pawguardian
       POSTGRES_DB: pawguardian
       POSTGRES_PASSWORD: pawguardian
     volumes:
       - postgres-vol:/var/lib/postgresql/data
+    networks:
+      - database-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
 
   mongodb:
     image: mongo:7
     ports:
-      - 27017:27017
+      - "27017:27017"
     volumes:
       - mongo-vol:/data/db
+    networks:
+      - database-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
 
   pgadmin:
     image: dpage/pgadmin4
     ports:
-      - 5050:80
+      - "5050:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@pawguardian.com
       PGADMIN_DEFAULT_PASSWORD: admin
+    networks:
+      - database-network
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+
+  backend:
+    image:  pawguardian-backend:latest
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/pawguardian
+      DB_USERNAME: pawguardian
+      DB_PASSWORD: pawguardian
+    networks:
+      - backend-network
+      - database-network
+    depends_on:
+      - postgres
+    deploy:
+      replicas: 2
+      placement:
+        constraints: [ node.role == worker ]
+      restart_policy:
+        condition: on-failure
 
 volumes:
   postgres-vol:
   mongo-vol:
+networks:
+  database-network:
+  backend-network:
