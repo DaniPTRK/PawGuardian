@@ -43,7 +43,7 @@ services:
         constraints: [ node.role == manager ]
 
   backend:
-    image:  pawguardian-backend:latest
+    image:  ${{ secrets.DOCKERHUB_USERNAME }}/pawguardian-backend:latest
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/pawguardian
       DB_USERNAME: pawguardian
