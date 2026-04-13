@@ -43,20 +43,22 @@ services:
         constraints: [ node.role == manager ]
 
   backend:
-    image:  ${{ secrets.DOCKERHUB_USERNAME }}/pawguardian-backend:latest
+    image:  daniptrk/pawguardian-backend:latest
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/pawguardian
       DB_USERNAME: pawguardian
       DB_PASSWORD: pawguardian
+    ports:
+      - "8080:8080"
     networks:
       - backend-network
       - database-network
     depends_on:
       - postgres
     deploy:
-      replicas: 2
+      replicas: 1
       placement:
-        constraints: [ node.role == worker ]
+        constraints: [ node.role == manager ]
       restart_policy:
         condition: on-failure
 
@@ -65,4 +67,6 @@ volumes:
   mongo-vol:
 networks:
   database-network:
+    driver: overlay
   backend-network:
+    driver: overlay
