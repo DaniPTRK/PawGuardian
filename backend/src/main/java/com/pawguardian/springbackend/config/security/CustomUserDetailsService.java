@@ -32,6 +32,8 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("User not found");
     }
     private Collection<GrantedAuthority> mapRolesToAuthorities(Set<Role> roles){
-        return roles.stream().map(role->new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
+        return roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                .collect(Collectors.toList());
     }
 }
