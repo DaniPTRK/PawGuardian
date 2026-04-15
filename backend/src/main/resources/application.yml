@@ -19,6 +19,8 @@ spring:
     validate-on-migrate: false
     table: project_schema_version
     baseline-version: 0
+    connect-retries: 10  # Retry 10 times
+    connect-retries-interval: 10  # Wait 10 seconds between retries
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -32,12 +34,9 @@ server:
 
 token:
   ttl: 3600000
-  secret: "https://www.youtube.com/watch?v=v-WC2Y6SyrU"
+  secret: "4mLu4777r4nd4firiSi7inL0cD34min7iriD3spr37in3SiIiPunP3P3rn474SiM4Min73Inim4P0473Vin3PrinLum3R474c3scCuS73l3l3V0rb3scUnd33s7i04r3SiNim3niNuV4S7iC3Mul7N0iN34mIubi7"
 
 admin:
   username: admin
   email: admin@admin.com
   password: admin
-
-
-
