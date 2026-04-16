@@ -36,7 +36,7 @@ public class AuthService {
     private JwtGenerator jwtGenerator;
 
 
-    public void register(RegisterDto registerDto) {
+    public void register(RegisterDto registerDto) throws BadRequestException {
 
         if(userRepository.existsUserByEmail(registerDto.getEmail())) {
             throw new BadRequestException("Email is already used");
@@ -56,7 +56,7 @@ public class AuthService {
         userRepository.save(newUser);
     }
 
-    public String login(LoginDto loginDto) {
+    public String login(LoginDto loginDto) throws BadRequestException {
         Optional<User> optionalUser = userRepository.findUserByEmail(loginDto.getEmail());
         if(optionalUser.isEmpty()) {
             throw new BadRequestException("Wrong credentials");
