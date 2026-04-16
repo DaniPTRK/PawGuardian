@@ -8,12 +8,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ErrorObject {
+public class ValidationErrorObject {
 
     @JsonProperty("error_code")
     private Integer statusCode;
@@ -21,7 +22,9 @@ public class ErrorObject {
     @JsonProperty("error_message")
     private String message;
 
-    // err route
+    @JsonProperty("validation_errors")
+    private Map<String, String> validationErrors;
+
     @JsonProperty("path")
     private String path;
 
@@ -29,3 +32,4 @@ public class ErrorObject {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime timestamp;
 }
+
