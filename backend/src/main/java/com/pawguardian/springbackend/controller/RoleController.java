@@ -1,6 +1,7 @@
 package com.pawguardian.springbackend.controller;
 
 import com.pawguardian.springbackend.service.RoleService;
+import com.pawguardian.springbackend.service.dto.ApiResponseDto;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +27,16 @@ public class RoleController implements SecuredRestController{
     private RoleService roleService;
 
     @RequestMapping(path = "/add", method = RequestMethod.POST)
-    @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<?> addRoles(@RequestBody List<String> roleList) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponseDto> addRoles(@RequestBody List<String> roleList) {
         logger.info("Request to add roles {}", roleList);
         List<String> addedRoles = roleService.addRoles(roleList);
         logger.info("Successfully added roles {}", addedRoles);
-        return new ResponseEntity<>(addedRoles, HttpStatus.CREATED);
+
+        ApiResponseDto response = ApiResponseDto.builder()
+                .statusCode(HttpStatus.CREATED.value())
+                .message("Roles added: " + addedRoles)
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }
