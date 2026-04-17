@@ -18,9 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Transactional
@@ -34,29 +32,31 @@ public class AuthService {
     private RoleRepository roleRepository;
     @Autowired
     private AuthenticationManager authenticationManager;
-
     @Autowired
     private JwtGenerator jwtGenerator;
 
 
-    public void register(RegisterDto registerDto) {
+    public void register(RegisterDto registerDto) throws BadRequestException {
 
         if(userRepository.existsUserByEmail(registerDto.getEmail())) {
             throw new BadRequestException("Email is already used");
         }
 
-        List<Role> roleList = new ArrayList<>();
+        Role ownerRole = roleRepository.findRoleByName("OWNER")
+                .orElseThrow(() -> new BadRequestException("Default role not found in database"));
 
-        if(roleRepository.findRoleByName("USER").isPresent()) {
-            roleList.add(roleRepository.findRoleByName("USER").get());
-        }
-
-        userRepository.save(User.builder()
+        // Save the new user with encoded pass
+        User newUser = User.builder()
+                .username(registerDto.getUsername())
                 .email(registerDto.getEmail())
-                .build());
+                .password(passwordEncoder.encode(registerDto.getPassword()))
+                .roles(new HashSet<>(Collections.singletonList(ownerRole)))
+                .build();
+
+        userRepository.save(newUser);
     }
 
-    public String login(LoginDto loginDto) {
+    public String login(LoginDto loginDto) throws BadRequestException {
         Optional<User> optionalUser = userRepository.findUserByEmail(loginDto.getEmail());
         if(optionalUser.isEmpty()) {
             throw new BadRequestException("Wrong credentials");

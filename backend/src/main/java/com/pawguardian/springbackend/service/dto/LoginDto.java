@@ -1,21 +1,18 @@
 package com.pawguardian.springbackend.service.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
-import org.springframework.stereotype.Component;
+import lombok.Setter;
 
 @Getter
-@Component
+@Setter
 public class LoginDto {
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be a valid email address")
     private String email;
+
+    @NotBlank(message = "Password is required")
     private String password;
-
-    public LoginDto setEmail(String email) {
-        this.email = email;
-        return this;
-    }
-
-    public LoginDto setPassword(String password) {
-        this.password = password;
-        return this;
-    }
 }

@@ -1,31 +1,31 @@
-package com.pawguardian.springbackend.exception;
+package com.pawguardian.springbackend.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ErrorObject {
+public class ApiResponseDto {
 
-    @JsonProperty("error_code")
-    private Integer statusCode;
+    @JsonProperty("status_code")
+    private int statusCode;
 
-    @JsonProperty("error_message")
+    @JsonProperty("message")
     private String message;
 
-    // err route
-    @JsonProperty("path")
-    private String path;
-
-    @JsonProperty("error_timestamp")
+    @JsonProperty("timestamp")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime timestamp;
+    @Builder.Default
+    private LocalDateTime timestamp = LocalDateTime.now();
 }
+

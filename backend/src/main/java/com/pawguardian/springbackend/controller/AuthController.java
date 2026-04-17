@@ -1,16 +1,18 @@
 package com.pawguardian.springbackend.controller;
 
 import com.pawguardian.springbackend.service.AuthService;
+import com.pawguardian.springbackend.service.dto.ApiResponseDto;
 import com.pawguardian.springbackend.service.dto.LoginDto;
 import com.pawguardian.springbackend.service.dto.LoginResponseDto;
 import com.pawguardian.springbackend.service.dto.RegisterDto;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,34 +27,48 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    @Autowired
-    private LoginResponseDto loginResponseDto;
+    @Value("${token.ttl}")
+    private long tokenTtl;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @RequestMapping(path ="/register", method = RequestMethod.POST)
-    public ResponseEntity<?> register(@RequestBody RegisterDto registerDto) {
+    public ResponseEntity<ApiResponseDto> register(@Valid @RequestBody RegisterDto registerDto) {
         logger.info("Request to register user {}", registerDto.getEmail());
         authService.register(registerDto);
         logger.info("Successfully registered user {}", registerDto.getEmail());
-        return new ResponseEntity<>("User registered", HttpStatus.CREATED);
+
+        ApiResponseDto response = ApiResponseDto.builder()
+                .statusCode(HttpStatus.CREATED.value())
+                .message("User registered successfully")
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @RequestMapping(path ="/login", method = RequestMethod.POST)
-    public ResponseEntity<?> login(@RequestBody LoginDto loginDto) {
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginDto loginDto) {
         logger.info("Request to login for user {}", loginDto.getEmail());
         String token = authService.login(loginDto);
         logger.info("Successfully logged in user {}", loginDto.getEmail());
-        return new ResponseEntity<>(loginResponseDto.setToken(token), HttpStatus.OK);
+
+        LoginResponseDto loginResponseDto = LoginResponseDto.builder()
+                .token(token)
+                .expire(tokenTtl)
+                .build();
+
+        return new ResponseEntity<>(loginResponseDto, HttpStatus.OK);
     }
 
     @SecurityRequirement(name = "Bearer Authentication")
     @RequestMapping(path ="/token", method = RequestMethod.GET)
-    public ResponseEntity<?> validateToken() {
+    public ResponseEntity<ApiResponseDto> validateToken() {
         UserDetails user = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         logger.info("Request to validate token for user {}", user.getUsername());
-        String email = user.getUsername();
-        logger.info("Successfully validated token for user {}", user.getUsername());
-        return new ResponseEntity<>(email, HttpStatus.OK);
+
+        ApiResponseDto response = ApiResponseDto.builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Token valid for user: " + user.getUsername())
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
