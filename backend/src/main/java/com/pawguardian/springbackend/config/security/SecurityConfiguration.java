@@ -25,7 +25,6 @@ public class SecurityConfiguration {
     @Value("${vars.security.enable}")
     private boolean securityEnabled;
 
-    @Autowired
     private JwtAuthEntryPoint authEntryPoint;
 
     @Autowired

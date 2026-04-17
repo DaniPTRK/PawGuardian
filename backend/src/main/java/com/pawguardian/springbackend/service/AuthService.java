@@ -8,6 +8,7 @@ import com.pawguardian.springbackend.repository.RoleRepository;
 import com.pawguardian.springbackend.repository.UserRepository;
 import com.pawguardian.springbackend.service.dto.LoginDto;
 import com.pawguardian.springbackend.service.dto.RegisterDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,16 +18,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
 public class AuthService {
 
+    @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
     private UserRepository userRepository;
+    @Autowired
     private RoleRepository roleRepository;
+    @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
     private JwtGenerator jwtGenerator;
 
 
@@ -36,18 +45,15 @@ public class AuthService {
             throw new BadRequestException("Email is already used");
         }
 
-        Role ownerRole = roleRepository.findRoleByName("OWNER")
-                .orElseThrow(() -> new BadRequestException("Default role not found in database"));
+        List<Role> roleList = new ArrayList<>();
 
-        // Save the new user with encoded pass
-        User newUser = User.builder()
-                .username(registerDto.getUsername())
+        if(roleRepository.findRoleByName("USER").isPresent()) {
+            roleList.add(roleRepository.findRoleByName("USER").get());
+        }
+
+        userRepository.save(User.builder()
                 .email(registerDto.getEmail())
-                .password(passwordEncoder.encode(registerDto.getPassword()))
-                .roles(new HashSet<>(Collections.singletonList(ownerRole)))
-                .build();
-
-        userRepository.save(newUser);
+                .build());
     }
 
     public String login(LoginDto loginDto) {

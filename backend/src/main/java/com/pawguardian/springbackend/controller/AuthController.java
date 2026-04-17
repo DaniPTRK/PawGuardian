@@ -25,6 +25,7 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
     private LoginResponseDto loginResponseDto;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
