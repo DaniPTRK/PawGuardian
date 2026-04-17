@@ -25,6 +25,8 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    private LoginResponseDto loginResponseDto;
+
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @RequestMapping(path ="/register", method = RequestMethod.POST)
@@ -40,11 +42,7 @@ public class AuthController {
         logger.info("Request to login for user {}", loginDto.getEmail());
         String token = authService.login(loginDto);
         logger.info("Successfully logged in user {}", loginDto.getEmail());
-
-        LoginResponseDto loginResponseDto = new LoginResponseDto();
-        loginResponseDto.setToken(token);
-
-        return new ResponseEntity<>(loginResponseDto, HttpStatus.OK);
+        return new ResponseEntity<>(loginResponseDto.setToken(token), HttpStatus.OK);
     }
 
     @SecurityRequirement(name = "Bearer Authentication")

@@ -8,7 +8,6 @@ import com.pawguardian.springbackend.repository.RoleRepository;
 import com.pawguardian.springbackend.repository.UserRepository;
 import com.pawguardian.springbackend.service.dto.LoginDto;
 import com.pawguardian.springbackend.service.dto.RegisterDto;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,15 +23,10 @@ import java.util.*;
 @Transactional
 public class AuthService {
 
-    @Autowired
     private PasswordEncoder passwordEncoder;
-    @Autowired
     private UserRepository userRepository;
-    @Autowired
     private RoleRepository roleRepository;
-    @Autowired
     private AuthenticationManager authenticationManager;
-    @Autowired
     private JwtGenerator jwtGenerator;
 
 
