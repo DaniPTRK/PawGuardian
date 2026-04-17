@@ -49,7 +49,7 @@ services:
         mode: host
 
   backend:
-    image: daniptrk/pawguardian-backend:v4
+    image: daniptrk/pawguardian-backend:latest
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/pawguardian
       DB_USERNAME: pawguardian
