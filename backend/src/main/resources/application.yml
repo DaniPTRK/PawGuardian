@@ -2,7 +2,7 @@ spring:
   application:
     name: project
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/pawguardian}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/pawguardian}
     username: ${DB_USERNAME:pawguardian}
     password: ${DB_PASSWORD:pawguardian}
   jpa:
