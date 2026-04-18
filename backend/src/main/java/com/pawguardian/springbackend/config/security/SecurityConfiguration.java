@@ -29,6 +29,9 @@ public class SecurityConfiguration {
     private JwtAuthEntryPoint authEntryPoint;
 
     @Autowired
+    private JwtAccessDeniedHandler accessDeniedHandler;
+
+    @Autowired
     private CustomUserDetailsService userDetailsService;
 
     @Bean
@@ -36,11 +39,15 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable);
         if (securityEnabled) {
            http.authorizeHttpRequests(auth -> auth
-                   .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register",
-                           "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                   .anyRequest().authenticated())
-                   .exceptionHandling((exception)-> exception.authenticationEntryPoint(authEntryPoint))
-                   .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                    .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register",
+                            "/api/v1/telemetry/record",
+                            "/api/v1/species",
+                            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                    .anyRequest().authenticated())
+                    .exceptionHandling((exception)-> exception
+                            .authenticationEntryPoint(authEntryPoint)
+                            .accessDeniedHandler(accessDeniedHandler))
+                    .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
            http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         } else {
             http.authorizeHttpRequests(auth -> auth
