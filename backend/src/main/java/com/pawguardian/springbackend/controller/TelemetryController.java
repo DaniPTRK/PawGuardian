@@ -16,12 +16,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/telemetry")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication")
 public class TelemetryController {
 
     private final TelemetryService telemetryService;
 
-    // The wearable device posts data here
+    // No auth needed to post data through wearable device
     @PostMapping("/record")
+    @SecurityRequirement(name = "none")
     public ResponseEntity<ApiResponseDto> recordTelemetry(@Valid @RequestBody HealthMetricDto metricDto) {
         telemetryService.recordTelemetry(metricDto);
         return new ResponseEntity<>(
@@ -34,14 +36,12 @@ public class TelemetryController {
 
     // Frontend requests current location/status
     @GetMapping("/{petId}/current")
-    @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<HealthMetricDto> getCurrentStatus(@PathVariable Long petId, Principal principal) {
         return ResponseEntity.ok(telemetryService.getCurrentStatus(petId, principal.getName()));
     }
 
     // Frontend requests full history for map display
     @GetMapping("/{petId}/history")
-    @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<List<HealthMetricDto>> getHistory(@PathVariable Long petId, Principal principal) {
         return ResponseEntity.ok(telemetryService.getPetHistory(petId, principal.getName()));
     }
