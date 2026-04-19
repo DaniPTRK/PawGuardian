@@ -2,6 +2,7 @@ package com.pawguardian.springbackend.controller;
 
 import com.pawguardian.springbackend.service.UserService;
 import com.pawguardian.springbackend.service.dto.ApiResponseDto;
+import com.pawguardian.springbackend.service.dto.PetResponseDto;
 import com.pawguardian.springbackend.service.dto.UpdateUserDto;
 import com.pawguardian.springbackend.service.dto.UserResponseDto;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -45,6 +46,14 @@ public class UserController {
                 .build());
     }
 
+    // Vet endpoints
+
+    @GetMapping("/vet/patients")
+    @PreAuthorize("hasRole('VET')")
+    public ResponseEntity<List<PetResponseDto>> getMyPatients(Principal principal) {
+        return ResponseEntity.ok(userService.getAssignedPatients(principal.getName()));
+    }
+
     // Admin-related endpoints
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -72,6 +81,41 @@ public class UserController {
         return ResponseEntity.ok(ApiResponseDto.builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("User deleted successfully")
+                .build());
+    }
+
+    @PostMapping("/{userId}/promote-vet")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDto> promoteToVet(@PathVariable Long userId) {
+        return ResponseEntity.ok(userService.promoteToRole(userId, "VET"));
+    }
+
+    @PostMapping("/{userId}/promote/{role}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDto> promoteToRole(
+            @PathVariable Long userId, @PathVariable String role) {
+        return ResponseEntity.ok(userService.promoteToRole(userId, role));
+    }
+
+    @PostMapping("/{vetId}/assign-pet/{petId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponseDto> assignPetToVet(
+            @PathVariable Long vetId, @PathVariable Long petId) {
+        userService.assignPetToVet(vetId, petId);
+        return ResponseEntity.ok(ApiResponseDto.builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Pet assigned to vet successfully")
+                .build());
+    }
+
+    @DeleteMapping("/{vetId}/assign-pet/{petId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponseDto> removePetFromVet(
+            @PathVariable Long vetId, @PathVariable Long petId) {
+        userService.removePetFromVet(vetId, petId);
+        return ResponseEntity.ok(ApiResponseDto.builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Pet removed from vet successfully")
                 .build());
     }
 }

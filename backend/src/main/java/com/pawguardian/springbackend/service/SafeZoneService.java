@@ -31,6 +31,7 @@ public class SafeZoneService {
     private final PetRepository petRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final PetService petService;
 
     @Value("${geofencing.alert-cooldown-minutes:5}")
     private long alertCooldownMinutes;
@@ -190,6 +191,21 @@ public class SafeZoneService {
         }
 
         return inside;
+    }
+
+    // vet access
+
+    @Transactional(readOnly = true)
+    public List<SafeZoneResponseDto> getSafeZonesForPetAsVet(Long petId, String vetEmail) {
+        petService.findPetAssignedToVet(petId, vetEmail);
+        return safeZoneRepository.findAllByPetId(petId)
+                .stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public SafeZoneResponseDto getSafeZoneByIdAsVet(Long petId, Long zoneId, String vetEmail) {
+        petService.findPetAssignedToVet(petId, vetEmail);
+        return mapToDto(findZoneForPet(zoneId, petId));
     }
 
     // helpers

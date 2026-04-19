@@ -26,6 +26,7 @@ public class TelemetryService {
     private final PetRepository petRepository;
     private final UserRepository userRepository;
     private final WearableRepository wearableRepository;
+    private final PetService petService;
 
     // Called by the wearable device to submit sensor readings
     @Transactional
@@ -71,6 +72,36 @@ public class TelemetryService {
     @Transactional(readOnly = true)
     public List<HealthMetricDto> getPetHistory(Long petId, String ownerEmail) {
         verifyPetOwnership(petId, ownerEmail);
+
+        Integer batteryLevel = wearableRepository.findByPetId(petId)
+                .map(WearableDevice::getBatteryLevel)
+                .orElse(null);
+
+        return healthMetricRepository.findAllByPetIdOrderByTimestampDesc(petId)
+                .stream()
+                .map(m -> mapToDto(m, batteryLevel))
+                .collect(Collectors.toList());
+    }
+
+    // Vet access
+
+    @Transactional(readOnly = true)
+    public HealthMetricDto getCurrentStatusAsVet(Long petId, String vetEmail) {
+        petService.findPetAssignedToVet(petId, vetEmail);
+
+        HealthMetric latestMetric = healthMetricRepository.findTopByPetIdOrderByTimestampDesc(petId)
+                .orElseThrow(() -> new BadRequestException("No telemetry data found for this pet yet"));
+
+        Integer batteryLevel = wearableRepository.findByPetId(petId)
+                .map(WearableDevice::getBatteryLevel)
+                .orElse(null);
+
+        return mapToDto(latestMetric, batteryLevel);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HealthMetricDto> getPetHistoryAsVet(Long petId, String vetEmail) {
+        petService.findPetAssignedToVet(petId, vetEmail);
 
         Integer batteryLevel = wearableRepository.findByPetId(petId)
                 .map(WearableDevice::getBatteryLevel)

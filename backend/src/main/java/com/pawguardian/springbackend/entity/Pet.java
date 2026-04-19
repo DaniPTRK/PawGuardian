@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "pets", schema = "project")
 @Getter
@@ -32,4 +35,15 @@ public class Pet {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "species_id", nullable = false)
     private PetSpecies species;
+
+    // vets assigned to this pet
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "vet_patient",
+        schema = "project",
+        joinColumns = @JoinColumn(name = "pet_id"),
+        inverseJoinColumns = @JoinColumn(name = "vet_id")
+    )
+    @Builder.Default
+    private Set<User> assignedVets = new HashSet<>();
 }
