@@ -16,12 +16,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 
 import java.util.*;
 
 @Service
 @Transactional
+@Slf4j
 public class AuthService {
 
     @Autowired
@@ -34,8 +36,10 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
     @Autowired
     private JwtGenerator jwtGenerator;
+    @Autowired
+    private EmailService emailService;
 
-
+    // Registering logic
     public void register(RegisterDto registerDto) throws BadRequestException {
 
         if(userRepository.existsUserByEmail(registerDto.getEmail())) {
@@ -54,8 +58,12 @@ public class AuthService {
                 .build();
 
         userRepository.save(newUser);
+
+        // Send welcome email asynchronously
+        emailService.sendWelcomeEmail(newUser.getEmail(), newUser.getUsername());
     }
 
+    // Login logic
     public String login(LoginDto loginDto) throws BadRequestException {
         Optional<User> optionalUser = userRepository.findUserByEmail(loginDto.getEmail());
         if(optionalUser.isEmpty()) {
