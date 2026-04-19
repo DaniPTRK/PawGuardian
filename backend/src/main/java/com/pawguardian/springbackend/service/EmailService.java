@@ -42,6 +42,94 @@ public class EmailService {
             log.error("Failed to send welcome email to {}: {}", toEmail, e.getMessage());
         }
     }
+
+    // Send an email when the user changes his password
+    @Async
+    public void sendPasswordChangedEmail(String toEmail, String username) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(getFromAddress());
+            message.setTo(toEmail);
+            message.setSubject("Your PawGuardian password has been changed");
+            message.setText(
+                "Hi " + username + ",\n\n" +
+                "Your account password was just changed.\n\n" +
+                "If you did this yourself, no action is needed.\n" +
+                "If you did NOT make this change, please contact support immediately.\n\n" +
+                "The PawGuardian Team"
+            );
+            mailSender.send(message);
+            log.info("Password changed email sent to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send password changed email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    // Send an email when an admin changes the user's password
+    @Async
+    public void sendPasswordChangedByAdminEmail(String toEmail, String username) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(getFromAddress());
+            message.setTo(toEmail);
+            message.setSubject("Your PawGuardian password was reset by an administrator");
+            message.setText(
+                "Hi " + username + ",\n\n" +
+                "An administrator has reset your account password.\n\n" +
+                "Please log in with your new credentials and change your password as soon as possible.\n" +
+                "If you did not request this change, please contact support immediately.\n\n" +
+                "The PawGuardian Team"
+            );
+            mailSender.send(message);
+            log.info("Admin password-reset email sent to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send admin password-reset email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    // Send an email when an admin deletes the user's account
+    @Async
+    public void sendAccountDeletedByAdminEmail(String toEmail, String username) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(getFromAddress());
+            message.setTo(toEmail);
+            message.setSubject("Your PawGuardian account has been deleted");
+            message.setText(
+                "Hi " + username + ",\n\n" +
+                "Your PawGuardian account has been deleted by an administrator.\n\n" +
+                "If you believe this was a mistake, please contact support.\n\n" +
+                "The PawGuardian Team"
+            );
+            mailSender.send(message);
+            log.info("Account deleted by admin email sent to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send account-deleted email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
+    // Send an email when a user is promoted to VET by an admin
+    @Async
+    public void sendPromotedToVetEmail(String toEmail, String username) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(getFromAddress());
+            message.setTo(toEmail);
+            message.setSubject("You have been promoted to Veterinarian on PawGuardian!");
+            message.setText(
+                "Hi " + username + ",\n\n" +
+                "Congratulations! An administrator has verified your credentials and promoted your account to Veterinarian.\n\n" +
+                "You now have access to the Vet platform, where you can view and manage the pets assigned to you.\n\n" +
+                "Welcome aboard!\n\n" +
+                "The PawGuardian Team"
+            );
+            mailSender.send(message);
+            log.info("Promoted to VET email sent to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send VET promotion email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
     // Sends an email when the user's pet leaves the safezone
     @Async
     public void sendPetOutOfZoneAlert(String toEmail, String ownerName, String petName, String zoneName,
