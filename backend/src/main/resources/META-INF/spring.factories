@@ -1,0 +1,4 @@
+# Create an instance for the secret file reader
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.pawguardian.springbackend.config.SecretFileReader
+

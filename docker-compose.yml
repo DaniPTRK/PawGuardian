@@ -46,9 +46,6 @@ services:
         mode: host
   backend:
     image: daniptrk/pawguardian-backend:latest
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/pawguardian
       DB_USERNAME: pawguardian
