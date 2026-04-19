@@ -84,17 +84,18 @@ public class UserController {
                 .build());
     }
 
-    @PostMapping("/{userId}/promote-vet")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserResponseDto> promoteToVet(@PathVariable Long userId) {
-        return ResponseEntity.ok(userService.promoteToRole(userId, "VET"));
-    }
-
     @PostMapping("/{userId}/promote/{role}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDto> promoteToRole(
             @PathVariable Long userId, @PathVariable String role) {
         return ResponseEntity.ok(userService.promoteToRole(userId, role));
+    }
+
+    @DeleteMapping("/{userId}/role/{role}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDto> removeRole(
+            @PathVariable Long userId, @PathVariable String role) {
+        return ResponseEntity.ok(userService.removeRole(userId, role));
     }
 
     @PostMapping("/{vetId}/assign-pet/{petId}")

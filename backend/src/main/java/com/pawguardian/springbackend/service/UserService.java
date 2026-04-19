@@ -145,6 +145,29 @@ public class UserService {
         return result;
     }
 
+    // Role removal - service used by the admin
+    @Transactional
+    public UserResponseDto removeRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User with id " + userId + " not found"));
+
+        String upperRole = roleName.toUpperCase();
+
+        Role role = roleRepository.findRoleByName(upperRole)
+                .orElseThrow(() -> new BadRequestException("Role '" + upperRole + "' not found"));
+
+        if (user.getRoles().stream().noneMatch(r -> r.getName().equals(upperRole))) {
+            throw new BadRequestException("User does not have the role '" + upperRole + "'");
+        }
+
+        if (user.getRoles().size() == 1) {
+            throw new BadRequestException("Cannot remove the user's only role");
+        }
+
+        user.getRoles().remove(role);
+        return mapToDto(userRepository.save(user));
+    }
+
     // Admin assigns and removes pets from vet
     @Transactional
     public void assignPetToVet(Long vetId, Long petId) {
