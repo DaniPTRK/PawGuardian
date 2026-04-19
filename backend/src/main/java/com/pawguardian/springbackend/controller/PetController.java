@@ -4,6 +4,7 @@ import com.pawguardian.springbackend.service.PetService;
 import com.pawguardian.springbackend.service.dto.ApiResponseDto;
 import com.pawguardian.springbackend.service.dto.PetRequestDto;
 import com.pawguardian.springbackend.service.dto.PetResponseDto;
+import com.pawguardian.springbackend.service.dto.UserResponseDto;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -56,5 +57,11 @@ public class PetController {
                 .message("Pet deleted successfully")
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    // Returns vets assigned to owner's pet
+    @GetMapping("/{petId}/vets")
+    public ResponseEntity<List<UserResponseDto>> getAssignedVets(@PathVariable Long petId, Principal principal) {
+        return ResponseEntity.ok(petService.getAssignedVetsForPet(petId, principal.getName()));
     }
 }

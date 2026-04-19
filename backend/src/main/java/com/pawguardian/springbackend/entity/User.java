@@ -51,6 +51,11 @@ public class User implements UserDetails {
     @Builder.Default
     private List<Pet> pets = new ArrayList<>();
 
+    // if user is a VET: the pets they are assigned to
+    @ManyToMany(mappedBy = "assignedVets", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<Pet> assignedPets = new HashSet<>();
+
     // credentials management
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

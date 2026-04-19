@@ -1,8 +1,13 @@
 package com.pawguardian.springbackend.service;
 
+import com.pawguardian.springbackend.entity.Pet;
+import com.pawguardian.springbackend.entity.Role;
 import com.pawguardian.springbackend.entity.User;
 import com.pawguardian.springbackend.exception.BadRequestException;
+import com.pawguardian.springbackend.repository.PetRepository;
+import com.pawguardian.springbackend.repository.RoleRepository;
 import com.pawguardian.springbackend.repository.UserRepository;
+import com.pawguardian.springbackend.service.dto.PetResponseDto;
 import com.pawguardian.springbackend.service.dto.UpdateUserDto;
 import com.pawguardian.springbackend.service.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +23,12 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PetRepository petRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    // Own account services
 
     @Transactional(readOnly = true)
     public UserResponseDto getProfile(String email) {
@@ -37,11 +47,17 @@ public class UserService {
             user.setUsername(updateDto.getUsername());
         }
 
+        boolean passwordChanged = false;
         if (updateDto.getNewPassword() != null && !updateDto.getNewPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(updateDto.getNewPassword()));
+            passwordChanged = true;
         }
 
-        return mapToDto(userRepository.save(user));
+        UserResponseDto result = mapToDto(userRepository.save(user));
+        if (passwordChanged) {
+            emailService.sendPasswordChangedEmail(user.getEmail(), user.getUsername());
+        }
+        return result;
     }
 
     @Transactional
@@ -50,7 +66,7 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    // --- Admin operations ---
+    // Admin ops
 
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAllUsers() {
@@ -78,21 +94,109 @@ public class UserService {
             user.setUsername(updateDto.getUsername());
         }
 
+        boolean passwordChanged = false;
         if (updateDto.getNewPassword() != null && !updateDto.getNewPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(updateDto.getNewPassword()));
+            passwordChanged = true;
         }
 
-        return mapToDto(userRepository.save(user));
+        UserResponseDto result = mapToDto(userRepository.save(user));
+        if (passwordChanged) {
+            emailService.sendPasswordChangedByAdminEmail(user.getEmail(), user.getUsername());
+        }
+        return result;
     }
 
     @Transactional
     public void deleteUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("User with id " + userId + " not found"));
+        String savedEmail = user.getEmail();
+        String savedUsername = user.getUsername();
         userRepository.delete(user);
+        emailService.sendAccountDeletedByAdminEmail(savedEmail, savedUsername);
+    }
+
+    // Role promotion - service used by the admin
+    @Transactional
+    public UserResponseDto promoteToRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User with id " + userId + " not found"));
+
+        String upperRole = roleName.toUpperCase();
+
+        Role role = roleRepository.findRoleByName(upperRole)
+                .orElseThrow(() -> new BadRequestException("Role '" + upperRole + "' not found"));
+
+        if (user.getRoles().stream().anyMatch(r -> r.getName().equals(upperRole))) {
+            throw new BadRequestException("User already has the role '" + upperRole + "'");
+        }
+
+        user.getRoles().add(role);
+        UserResponseDto result = mapToDto(userRepository.save(user));
+
+        // Send appropriate email based on role
+        if (upperRole.equals("VET")) {
+            emailService.sendPromotedToVetEmail(user.getEmail(), user.getUsername());
+        } else if (upperRole.equals("ADMIN")) {
+            emailService.sendPromotedToAdminEmail(user.getEmail(), user.getUsername());
+        }
+
+        return result;
+    }
+
+    // Admin assigns and removes pets from vet
+    @Transactional
+    public void assignPetToVet(Long vetId, Long petId) {
+        User vet = getVetUser(vetId);
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new BadRequestException("Pet with id " + petId + " not found"));
+
+        if (pet.getAssignedVets().contains(vet)) {
+            throw new BadRequestException("Vet is already assigned to this pet");
+        }
+        pet.getAssignedVets().add(vet);
+        petRepository.save(pet);
+    }
+
+    @Transactional
+    public void removePetFromVet(Long vetId, Long petId) {
+        User vet = getVetUser(vetId);
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new BadRequestException("Pet with id " + petId + " not found"));
+
+        if (!pet.getAssignedVets().contains(vet)) {
+            throw new BadRequestException("Vet is not assigned to this pet");
+        }
+        pet.getAssignedVets().remove(vet);
+        petRepository.save(pet);
+    }
+
+    //
+
+    @Transactional(readOnly = true)
+    public List<PetResponseDto> getAssignedPatients(String vetEmail) {
+        User vet = findByEmail(vetEmail);
+        boolean isVet = vet.getRoles().stream().anyMatch(r -> r.getName().equals("VET"));
+        if (!isVet) {
+            throw new BadRequestException("User is not a VET");
+        }
+        return vet.getAssignedPets().stream()
+                .map(this::mapPetToDto)
+                .collect(Collectors.toList());
     }
 
     // --- Helpers ---
+
+    private User getVetUser(Long vetId) {
+        User user = userRepository.findById(vetId)
+                .orElseThrow(() -> new BadRequestException("User with id " + vetId + " not found"));
+        boolean isVet = user.getRoles().stream().anyMatch(r -> r.getName().equals("VET"));
+        if (!isVet) {
+            throw new BadRequestException("User with id " + vetId + " is not a VET");
+        }
+        return user;
+    }
 
     private User findByEmail(String email) {
         return userRepository.findUserByEmail(email)
@@ -105,10 +209,20 @@ public class UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .roles(user.getRoles().stream()
-                        .map(r -> r.getName())
-                        .collect(java.util.stream.Collectors.toSet()))
+                        .map(Role::getName)
+                        .collect(Collectors.toSet()))
+                .build();
+    }
+
+    private PetResponseDto mapPetToDto(Pet pet) {
+        return PetResponseDto.builder()
+                .id(pet.getId())
+                .name(pet.getName())
+                .breed(pet.getBreed())
+                .age(pet.getAge())
+                .ownerEmail(pet.getOwner().getEmail())
+                .species(pet.getSpecies().getName())
                 .build();
     }
 }
-
 

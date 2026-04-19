@@ -130,7 +130,28 @@ public class EmailService {
         }
     }
 
-    // Sends an email when the user's pet leaves the safezone
+    // Send an email when a user is promoted to ADMIN by an admin
+    @Async
+    public void sendPromotedToAdminEmail(String toEmail, String username) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(getFromAddress());
+            message.setTo(toEmail);
+            message.setSubject("You have been promoted to Administrator on PawGuardian!");
+            message.setText(
+                "Hi " + username + ",\n\n" +
+                "Congratulations! You have been granted Administrator privileges on PawGuardian.\n\n" +
+                "You now have full access to manage users, roles, and platform settings.\n" +
+                "Please use these privileges responsibly.\n\n" +
+                "The PawGuardian Team"
+            );
+            mailSender.send(message);
+            log.info("Promoted to ADMIN email sent to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Failed to send ADMIN promotion email to {}: {}", toEmail, e.getMessage());
+        }
+    }
+
     @Async
     public void sendPetOutOfZoneAlert(String toEmail, String ownerName, String petName, String zoneName,
                                       double latitude, double longitude) {

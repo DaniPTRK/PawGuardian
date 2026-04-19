@@ -9,6 +9,7 @@ import com.pawguardian.springbackend.repository.PetSpeciesRepository;
 import com.pawguardian.springbackend.repository.UserRepository;
 import com.pawguardian.springbackend.service.dto.PetRequestDto;
 import com.pawguardian.springbackend.service.dto.PetResponseDto;
+import com.pawguardian.springbackend.service.dto.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class PetService {
     private final UserRepository userRepository;
     private final PetSpeciesRepository petSpeciesRepository;
 
+    // Associate a new pet to the user
     @Transactional
     public PetResponseDto addPet(PetRequestDto requestDto, String ownerEmail) {
         User owner = findUserByEmail(ownerEmail);
@@ -40,6 +42,7 @@ public class PetService {
         return mapToDto(petRepository.save(pet));
     }
 
+    // Return all of the user's pets
     @Transactional(readOnly = true)
     public List<PetResponseDto> getMyPets(String ownerEmail) {
         User owner = findUserByEmail(ownerEmail);
@@ -47,11 +50,13 @@ public class PetService {
                 .stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    // Get user's pet using ID
     @Transactional(readOnly = true)
     public PetResponseDto getPetById(Long petId, String ownerEmail) {
         return mapToDto(findPetOwnedBy(petId, ownerEmail));
     }
 
+    // Update pet info
     @Transactional
     public PetResponseDto updatePet(Long petId, PetRequestDto requestDto, String ownerEmail) {
         Pet pet = findPetOwnedBy(petId, ownerEmail);
@@ -72,12 +77,47 @@ public class PetService {
         return mapToDto(petRepository.save(pet));
     }
 
+    // Remove the pet associated to the user
     @Transactional
     public void deletePet(Long petId, String ownerEmail) {
         petRepository.delete(findPetOwnedBy(petId, ownerEmail));
     }
 
+    // Returns the list of vets assigned to the owner's pet
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getAssignedVetsForPet(Long petId, String ownerEmail) {
+        Pet pet = findPetOwnedBy(petId, ownerEmail);
+        return pet.getAssignedVets().stream()
+                .map(vet -> UserResponseDto.builder()
+                        .id(vet.getId())
+                        .username(vet.getUsername())
+                        .email(vet.getEmail())
+                        .roles(vet.getRoles().stream()
+                                .map(r -> r.getName())
+                                .collect(java.util.stream.Collectors.toSet()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // --- VET access ---
+
+    @Transactional(readOnly = true)
+    public PetResponseDto getPetByIdForVet(Long petId, String vetEmail) {
+        return mapToDto(findPetAssignedToVet(petId, vetEmail));
+    }
+
     // --- Helpers ---
+
+    public Pet findPetAssignedToVet(Long petId, String vetEmail) {
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new BadRequestException("Pet with id " + petId + " not found"));
+        boolean assigned = pet.getAssignedVets().stream()
+                .anyMatch(v -> v.getEmail().equals(vetEmail));
+        if (!assigned) {
+            throw new BadRequestException("You are not assigned to this pet");
+        }
+        return pet;
+    }
 
     private User findUserByEmail(String email) {
         return userRepository.findUserByEmail(email)
