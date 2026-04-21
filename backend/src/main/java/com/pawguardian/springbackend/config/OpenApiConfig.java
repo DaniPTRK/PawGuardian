@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(title = "PawGuardian API", version = "v1"),
-        security = @SecurityRequirement(name = "Bearer Authentication")
+        security = @SecurityRequirement(name = "BearerAuth")
 )
 
 @SecurityScheme(
-        name = "Bearer Authentication",
+        name = "BearerAuth",
         type = SecuritySchemeType.HTTP,
         bearerFormat = "JWT",
         scheme = "bearer"
