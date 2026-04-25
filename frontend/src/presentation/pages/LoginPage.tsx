@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { authApi } from '../../infrastructure/apis/api-management';
-import { setToken } from '../../application/state-slices/profile';
+import logo from '../../assets/PawGuardian_logo.png';
+import { authApi, userApi } from '../../infrastructure/apis/api-management';
+import { setToken, setUser } from '../../application/state-slices/profile';
 
 const LoginPage: React.FC = () => {
   const dispatch = useDispatch();
@@ -19,6 +20,11 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login({ loginDto: { email, password } });
       if (response.accessToken) {
         dispatch(setToken(response.accessToken));
+        // Fetch and store the user profile so username is available everywhere
+        try {
+          const profile = await userApi.getMyProfile();
+          dispatch(setUser({ id: profile.id, username: profile.username, email: profile.email, roles: profile.roles ? Array.from(profile.roles) : [] }));
+        } catch { /* non-critical */ }
         navigate('/home');
       }
     } catch {
@@ -33,15 +39,7 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-4">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-            <svg viewBox="0 0 64 64" className="w-10 h-10 text-green-600" fill="currentColor">
-              <ellipse cx="12" cy="20" rx="6" ry="8" />
-              <ellipse cx="28" cy="14" rx="6" ry="8" />
-              <ellipse cx="44" cy="14" rx="6" ry="8" />
-              <ellipse cx="56" cy="22" rx="5" ry="7" />
-              <path d="M32 28c-10 0-20 8-18 20 1 6 6 10 10 10 3 0 5-1 8-1s5 1 8 1c4 0 9-4 10-10 2-12-8-20-18-20z" />
-            </svg>
-          </div>
+          <img src={logo} alt="PawGuardian" className="w-75 h-40 object-contain" />
         </div>
         {/* Title */}
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">

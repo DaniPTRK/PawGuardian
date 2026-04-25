@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+
 interface ProfileState {
   token: string | null;
   user: { id?: number; username?: string; email?: string; roles?: string[] } | null;

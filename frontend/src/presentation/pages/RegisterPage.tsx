@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Check, X } from 'lucide-react';
 import { authApi } from '../../infrastructure/apis/api-management';
+import logo from "../../assets/PawGuardian_logo.png";
+
+const pwRules = (pw: string) => ({
+  minLength: pw.length >= 8,
+  hasUpper: /[A-Z]/.test(pw),
+  hasDigit: /\d/.test(pw),
+  hasSpecial: /[^A-Za-z0-9]/.test(pw),
+});
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', username: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
+
+  const rules = pwRules(form.password);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -23,8 +34,17 @@ const RegisterPage: React.FC = () => {
       await authApi.register({ registerDto: { email: form.email, username: form.username, password: form.password } });
       toast.success('Account created! Please sign in.');
       navigate('/login');
-    } catch {
-      toast.error('Registration failed. Email may already be in use.');
+    } catch (err: unknown) {
+      let message = 'Registration failed. Please try again.';
+      try {
+        // Try to parse the backend error response body
+        const res = err as { status?: number; json?: () => Promise<{ message?: string }> };
+        if (res.json) {
+          const body = await res.json();
+          if (body?.message) message = body.message;
+        }
+      } catch { /* ignore parse errors */ }
+      toast.error(message, { duration: 5000 });
     } finally {
       setLoading(false);
     }
@@ -35,15 +55,7 @@ const RegisterPage: React.FC = () => {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-4">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-            <svg viewBox="0 0 64 64" className="w-10 h-10 text-green-600" fill="currentColor">
-              <ellipse cx="12" cy="20" rx="6" ry="8" />
-              <ellipse cx="28" cy="14" rx="6" ry="8" />
-              <ellipse cx="44" cy="14" rx="6" ry="8" />
-              <ellipse cx="56" cy="22" rx="5" ry="7" />
-              <path d="M32 28c-10 0-20 8-18 20 1 6 6 10 10 10 3 0 5-1 8-1s5 1 8 1c4 0 9-4 10-10 2-12-8-20-18-20z" />
-            </svg>
-          </div>
+          <img src={logo} alt="PawGuardian" className="w-75 h-40 object-contain" />
         </div>
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
           Welcome to PawGuardian
@@ -89,6 +101,20 @@ const RegisterPage: React.FC = () => {
                 placeholder="Enter your password"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
               />
+              {form.password && (
+                <ul className="mt-2 space-y-0.5 text-xs">
+                  {[
+                    { ok: rules.minLength, label: 'At least 8 characters' },
+                    { ok: rules.hasUpper, label: 'At least one uppercase letter' },
+                    { ok: rules.hasDigit, label: 'At least one digit' },
+                    { ok: rules.hasSpecial, label: 'At least one special character (!@#$...)' },
+                  ].map(r => (
+                    <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? 'text-green-500' : 'text-gray-400'}`}>
+                      {r.ok ? <Check size={12} /> : <X size={12} />} {r.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
@@ -114,7 +140,7 @@ const RegisterPage: React.FC = () => {
           <p className="mt-5 text-center text-sm text-gray-500">
             Already have an account?{' '}
             <Link to="/login" className="text-green-600 font-medium hover:underline">
-              Sign In
+              Log In
             </Link>
           </p>
         </div>
