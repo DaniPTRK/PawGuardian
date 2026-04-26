@@ -30,14 +30,14 @@ public class SpeciesController {
     // ADMIN operations - adding and deleting species
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "Bearer Authentication")
+    @SecurityRequirement(name = "BearerAuth")
     public ResponseEntity<PetSpecies> addSpecies(@Valid @RequestBody SpeciesRequestDto dto) {
         return new ResponseEntity<>(speciesService.addSpecies(dto), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{speciesId}")
     @PreAuthorize("hasRole('ADMIN')")
-    @SecurityRequirement(name = "Bearer Authentication")
+    @SecurityRequirement(name = "BearerAuth")
     public ResponseEntity<ApiResponseDto> deleteSpecies(@PathVariable Integer speciesId) {
         speciesService.deleteSpecies(speciesId);
         return ResponseEntity.ok(ApiResponseDto.builder()
