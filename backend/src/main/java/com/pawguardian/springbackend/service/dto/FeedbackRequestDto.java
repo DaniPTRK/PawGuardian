@@ -17,7 +17,14 @@ public class FeedbackRequestDto {
     @Max(value = 5, message = "Rating must be between 1 and 5")
     private Integer rating;
 
-    private Boolean subscribe;
+    @NotBlank(message = "Recommendation answer is required")
+    private String wouldRecommend;
+
+    private Boolean mailAccuracyGood;
+
+    private Boolean experienceFriendly;
+
+    private Boolean vetSatisfied;
 
     @NotBlank(message = "Message is required")
     private String message;

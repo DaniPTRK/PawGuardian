@@ -63,9 +63,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus
+        include: health,prometheus,info,metrics,loggers
+  endpoint:
+    health:
+      show-details: always
   prometheus:
     metrics:
       export:
         enabled: true
-
+  metrics:
+    tags:
+      application: pawguardian-backend

@@ -147,6 +147,9 @@ public class PetService {
                 .breed(pet.getBreed())
                 .age(pet.getAge())
                 .ownerEmail(pet.getOwner().getEmail())
+                .assignedVetIds(pet.getAssignedVets().stream()
+                        .map(User::getId)
+                        .collect(java.util.stream.Collectors.toSet()))
                 .build();
     }
 }

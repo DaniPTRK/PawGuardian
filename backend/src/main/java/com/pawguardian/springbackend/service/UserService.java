@@ -253,6 +253,9 @@ public class UserService {
                 .age(pet.getAge())
                 .ownerEmail(pet.getOwner().getEmail())
                 .species(pet.getSpecies().getName())
+                .assignedVetIds(pet.getAssignedVets().stream()
+                        .map(u -> u.getId())
+                        .collect(Collectors.toSet()))
                 .build();
     }
 }

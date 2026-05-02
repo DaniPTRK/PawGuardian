@@ -21,10 +21,10 @@ import { mapValues } from '../runtime';
 export interface HealthMetricDto {
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof HealthMetricDto
      */
-    id?: number;
+    id?: string;
     /**
      * 
      * @type {number}

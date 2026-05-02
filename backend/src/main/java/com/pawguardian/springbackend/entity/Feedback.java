@@ -25,8 +25,17 @@ public class Feedback {
     @Column(nullable = false)
     private Integer rating;
 
+    @Column(nullable = false, length = 20)
+    private String wouldRecommend;
+
     @Builder.Default
-    private Boolean subscribe = false;
+    private Boolean mailAccuracyGood = false;
+
+    @Builder.Default
+    private Boolean experienceFriendly = false;
+
+    @Builder.Default
+    private Boolean vetSatisfied = false;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;

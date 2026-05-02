@@ -270,6 +270,49 @@ export class UserControllerApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getAllVets without sending the request
+     */
+    async getAllVetsRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/api/v1/users/vets`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     */
+    async getAllVetsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<UserResponseDto>>> {
+        const requestOptions = await this.getAllVetsRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(UserResponseDtoFromJSON));
+    }
+
+    /**
+     */
+    async getAllVets(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<UserResponseDto>> {
+        const response = await this.getAllVetsRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getMyPatients1 without sending the request
      */
     async getMyPatients1RequestOpts(): Promise<runtime.RequestOpts> {

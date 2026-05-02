@@ -1,36 +1,34 @@
 
-# HealthMetricDto
+# FeedbackResponseDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`id` | string
-`petId` | number
-`latitude` | number
-`longitude` | number
-`heartRate` | number
-`temperature` | number
-`batteryLevel` | number
-`timestamp` | Date
+`id` | number
+`userEmail` | string
+`category` | string
+`rating` | number
+`subscribe` | boolean
+`message` | string
+`createdAt` | Date
 
 ## Example
 
 ```typescript
-import type { HealthMetricDto } from ''
+import type { FeedbackResponseDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
   "id": null,
-  "petId": null,
-  "latitude": null,
-  "longitude": null,
-  "heartRate": null,
-  "temperature": null,
-  "batteryLevel": null,
-  "timestamp": null,
-} satisfies HealthMetricDto
+  "userEmail": null,
+  "category": null,
+  "rating": null,
+  "subscribe": null,
+  "message": null,
+  "createdAt": null,
+} satisfies FeedbackResponseDto
 
 console.log(example)
 
@@ -39,7 +37,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as HealthMetricDto
+const exampleParsed = JSON.parse(exampleJSON) as FeedbackResponseDto
 console.log(exampleParsed)
 ```
 
