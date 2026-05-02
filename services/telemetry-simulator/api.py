@@ -197,8 +197,8 @@ def remove_pet(req: RemovePetRequest):
 
     return {'status': 'removed', 'pet_id': req.pet_id}
 
-
-@app.post('/recharge/{pet_id}', summary='Recharge a pet\'s battery to 100%')
+# Recharge pet battery to a level (100% in this case)
+@app.post('/recharge/{pet_id}')
 def recharge(pet_id: int, level: int = 100):
     with _lock:
         if pet_id not in _simulators:

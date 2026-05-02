@@ -41,10 +41,10 @@ public class UserService {
 
         if (updateDto.getUsername() != null && !updateDto.getUsername().isBlank()) {
             if (userRepository.existsUserByUsername(updateDto.getUsername())
-                    && !user.getUsername().equals(updateDto.getUsername())) {
+                    && !user.getDisplayUsername().equals(updateDto.getUsername())) {
                 throw new BadRequestException("Username is already taken");
             }
-            user.setUsername(updateDto.getUsername());
+            user.setDisplayUsername(updateDto.getUsername());
         }
 
         boolean passwordChanged = false;
@@ -55,7 +55,7 @@ public class UserService {
 
         UserResponseDto result = mapToDto(userRepository.save(user));
         if (passwordChanged) {
-            emailService.sendPasswordChangedEmail(user.getEmail(), user.getUsername());
+            emailService.sendPasswordChangedEmail(user.getEmail(), user.getDisplayUsername());
         }
         return result;
     }
@@ -64,6 +64,14 @@ public class UserService {
     public void deleteAccount(String email) {
         User user = findByEmail(email);
         userRepository.delete(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponseDto> getAllVets() {
+        return userRepository.findAll().stream()
+                .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("VET")))
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     // Admin ops
@@ -88,10 +96,10 @@ public class UserService {
 
         if (updateDto.getUsername() != null && !updateDto.getUsername().isBlank()) {
             if (userRepository.existsUserByUsername(updateDto.getUsername())
-                    && !user.getUsername().equals(updateDto.getUsername())) {
+                    && !user.getDisplayUsername().equals(updateDto.getUsername())) {
                 throw new BadRequestException("Username is already taken");
             }
-            user.setUsername(updateDto.getUsername());
+            user.setDisplayUsername(updateDto.getUsername());
         }
 
         boolean passwordChanged = false;
@@ -102,7 +110,7 @@ public class UserService {
 
         UserResponseDto result = mapToDto(userRepository.save(user));
         if (passwordChanged) {
-            emailService.sendPasswordChangedByAdminEmail(user.getEmail(), user.getUsername());
+            emailService.sendPasswordChangedByAdminEmail(user.getEmail(), user.getDisplayUsername());
         }
         return result;
     }
@@ -112,7 +120,7 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("User with id " + userId + " not found"));
         String savedEmail = user.getEmail();
-        String savedUsername = user.getUsername();
+        String savedUsername = user.getDisplayUsername();
         userRepository.delete(user);
         emailService.sendAccountDeletedByAdminEmail(savedEmail, savedUsername);
     }
@@ -137,9 +145,9 @@ public class UserService {
 
         // Send appropriate email based on role
         if (upperRole.equals("VET")) {
-            emailService.sendPromotedToVetEmail(user.getEmail(), user.getUsername());
+            emailService.sendPromotedToVetEmail(user.getEmail(), user.getDisplayUsername());
         } else if (upperRole.equals("ADMIN")) {
-            emailService.sendPromotedToAdminEmail(user.getEmail(), user.getUsername());
+            emailService.sendPromotedToAdminEmail(user.getEmail(), user.getDisplayUsername());
         }
 
         return result;
@@ -229,7 +237,7 @@ public class UserService {
     private UserResponseDto mapToDto(User user) {
         return UserResponseDto.builder()
                 .id(user.getId())
-                .username(user.getUsername())
+                .username(user.getDisplayUsername())
                 .email(user.getEmail())
                 .roles(user.getRoles().stream()
                         .map(Role::getName)

@@ -33,16 +33,24 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @RequestMapping(path ="/register", method = RequestMethod.POST)
-    public ResponseEntity<ApiResponseDto> register(@Valid @RequestBody RegisterDto registerDto) {
+    public ResponseEntity<LoginResponseDto> register(@Valid @RequestBody RegisterDto registerDto) {
         logger.info("Request to register user {}", registerDto.getEmail());
         authService.register(registerDto);
         logger.info("Successfully registered user {}", registerDto.getEmail());
 
-        ApiResponseDto response = ApiResponseDto.builder()
-                .statusCode(HttpStatus.CREATED.value())
-                .message("User registered successfully")
+        // Auto-login after registration
+        LoginDto loginDto = LoginDto.builder()
+                .email(registerDto.getEmail())
+                .password(registerDto.getPassword())
                 .build();
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        String token = authService.login(loginDto);
+
+        LoginResponseDto loginResponseDto = LoginResponseDto.builder()
+                .token(token)
+                .expire(tokenTtl)
+                .build();
+
+        return new ResponseEntity<>(loginResponseDto, HttpStatus.CREATED);
     }
 
     @RequestMapping(path ="/login", method = RequestMethod.POST)

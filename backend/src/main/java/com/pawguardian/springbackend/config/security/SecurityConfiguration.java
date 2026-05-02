@@ -40,9 +40,10 @@ public class SecurityConfiguration {
         if (securityEnabled) {
            http.authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register",
-                            "/api/v1/telemetry/record",
-                            "/api/v1/species",
-                            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                             "/api/v1/telemetry/record",
+                             "/api/v1/species",
+                             "/actuator/**",
+                             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .anyRequest().authenticated())
                     .exceptionHandling((exception)-> exception
                             .authenticationEntryPoint(authEntryPoint)
