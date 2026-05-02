@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost:8090*
 | [**deleteMyAccount**](UserControllerApi.md#deletemyaccount) | **DELETE** /api/v1/users/me |  |
 | [**deleteUserById**](UserControllerApi.md#deleteuserbyid) | **DELETE** /api/v1/users/{userId} |  |
 | [**getAllUsers**](UserControllerApi.md#getallusers) | **GET** /api/v1/users |  |
+| [**getAllVets**](UserControllerApi.md#getallvets) | **GET** /api/v1/users/vets |  |
 | [**getMyPatients1**](UserControllerApi.md#getmypatients1) | **GET** /api/v1/users/vet/patients |  |
 | [**getMyProfile**](UserControllerApi.md#getmyprofile) | **GET** /api/v1/users/me |  |
 | [**getUserById**](UserControllerApi.md#getuserbyid) | **GET** /api/v1/users/{userId} |  |
@@ -246,6 +247,67 @@ async function example() {
 
   try {
     const data = await api.getAllUsers();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Array&lt;UserResponseDto&gt;**](UserResponseDto.md)
+
+### Authorization
+
+[BearerAuth](../README.md#BearerAuth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `*/*`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getAllVets
+
+> Array&lt;UserResponseDto&gt; getAllVets()
+
+
+
+### Example
+
+```ts
+import {
+  Configuration,
+  UserControllerApi,
+} from '';
+import type { GetAllVetsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: BearerAuth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new UserControllerApi(config);
+
+  try {
+    const data = await api.getAllVets();
     console.log(data);
   } catch (error) {
     console.error(error);

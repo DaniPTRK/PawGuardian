@@ -81,7 +81,7 @@ example().catch(console.error);
 
 ## register
 
-> ApiResponseDto register(registerDto)
+> LoginResponseDto register(registerDto)
 
 
 
@@ -128,7 +128,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**ApiResponseDto**](ApiResponseDto.md)
+[**LoginResponseDto**](LoginResponseDto.md)
 
 ### Authorization
 

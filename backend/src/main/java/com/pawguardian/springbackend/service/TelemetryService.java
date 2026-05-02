@@ -5,7 +5,7 @@ import com.pawguardian.springbackend.entity.Pet;
 import com.pawguardian.springbackend.entity.User;
 import com.pawguardian.springbackend.entity.WearableDevice;
 import com.pawguardian.springbackend.exception.BadRequestException;
-import com.pawguardian.springbackend.repository.HealthMetricRepository;
+import com.pawguardian.springbackend.repository.mongodb.HealthMetricRepository;
 import com.pawguardian.springbackend.repository.PetRepository;
 import com.pawguardian.springbackend.repository.UserRepository;
 import com.pawguardian.springbackend.repository.WearableRepository;
@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,22 +36,26 @@ public class TelemetryService {
         Pet pet = petRepository.findById(dto.getPetId())
                 .orElseThrow(() -> new BadRequestException("Pet with ID " + dto.getPetId() + " not found"));
 
+        // Verify the pet has a wearable device registered
+        WearableDevice device = wearableRepository.findByPetId(pet.getId())
+                .orElseThrow(() -> new BadRequestException("Pet with ID " + dto.getPetId() + " does not have a registered device"));
+
         HealthMetric metric = HealthMetric.builder()
-                .pet(pet)
+                .petId(pet.getId())
                 .latitude(dto.getLatitude())
                 .longitude(dto.getLongitude())
                 .heartRate(dto.getHeartRate())
                 .temperature(dto.getTemperature())
-                .timestamp(dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now())
+                .timestamp(dto.getTimestamp() != null
+                        ? dto.getTimestamp().atZone(ZoneId.systemDefault()).toInstant()
+                        : Instant.now())
                 .build();
         healthMetricRepository.save(metric);
 
         // Update battery level on the WearableDevice
         if (dto.getBatteryLevel() != null) {
-            wearableRepository.findByPetId(pet.getId()).ifPresent(device -> {
-                device.setBatteryLevel(dto.getBatteryLevel());
-                wearableRepository.save(device);
-            });
+            device.setBatteryLevel(dto.getBatteryLevel());
+            wearableRepository.save(device);
         }
     }
 
@@ -129,13 +135,15 @@ public class TelemetryService {
     private HealthMetricDto mapToDto(HealthMetric metric, Integer batteryLevel) {
         return HealthMetricDto.builder()
                 .id(metric.getId())
-                .petId(metric.getPet().getId())
+                .petId(metric.getPetId())
                 .latitude(metric.getLatitude())
                 .longitude(metric.getLongitude())
                 .heartRate(metric.getHeartRate())
                 .temperature(metric.getTemperature())
                 .batteryLevel(batteryLevel)
-                .timestamp(metric.getTimestamp())
+                .timestamp(metric.getTimestamp() != null
+                        ? LocalDateTime.ofInstant(metric.getTimestamp(), ZoneId.systemDefault())
+                        : null)
                 .build();
     }
 }

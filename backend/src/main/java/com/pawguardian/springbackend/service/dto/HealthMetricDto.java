@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public class HealthMetricDto {
 
-    private Long id;
+    private String id;
 
     @NotNull(message = "Pet ID is required")
     private Long petId;

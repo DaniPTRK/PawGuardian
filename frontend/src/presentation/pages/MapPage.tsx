@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, CircleMarker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -69,20 +69,20 @@ const MapPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (vars: { zoneName: string; vertices: { latitude: number; longitude: number }[] }) =>
       safeZoneApi.createSafeZone({ petId: selectedPetId!, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); toast.success('Zone created'); resetDraw(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone created'); resetDraw(); },
     onError: () => toast.error('Failed to create zone'),
   });
 
   const updateMutation = useMutation({
     mutationFn: (vars: { zoneId: number; zoneName: string; vertices: { latitude: number; longitude: number }[] }) =>
       safeZoneApi.updateSafeZone({ petId: selectedPetId!, zoneId: vars.zoneId, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); toast.success('Zone updated'); resetDraw(); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone updated'); resetDraw(); },
     onError: () => toast.error('Failed to update zone'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (zoneId: number) => safeZoneApi.deleteSafeZone({ petId: selectedPetId!, zoneId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); toast.success('Zone deleted'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone deleted'); },
     onError: () => toast.error('Failed to delete zone'),
   });
 
@@ -246,6 +246,18 @@ const MapPage: React.FC = () => {
               pathOptions={{ color: '#6366f1', fillColor: '#6366f1', fillOpacity: 0.2, dashArray: '6' }}
             />
           )}
+
+          {/* Show dots while drawing */}
+          {isDrawing && drawnVertices.map((v, i) => (
+            <CircleMarker
+              key={`vertex-${i}`}
+              center={[v.latitude, v.longitude]}
+              radius={6}
+              pathOptions={{ color: '#6366f1', fillColor: '#818cf8', fillOpacity: 0.9, weight: 2 }}
+            >
+              <Popup>Point {i + 1}</Popup>
+            </CircleMarker>
+          ))}
         </MapContainer>
 
         {/* Floating geofence banner on map */}

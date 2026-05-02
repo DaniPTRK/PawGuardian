@@ -12,7 +12,10 @@ public class FeedbackResponseDto {
     private String userEmail;
     private String category;
     private Integer rating;
-    private Boolean subscribe;
+    private String wouldRecommend;
+    private Boolean mailAccuracyGood;
+    private Boolean experienceFriendly;
+    private Boolean vetSatisfied;
     private String message;
     private LocalDateTime createdAt;
 }

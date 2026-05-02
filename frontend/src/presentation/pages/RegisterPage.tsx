@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { Check, X } from 'lucide-react';
-import { authApi } from '../../infrastructure/apis/api-management';
+import { authApi, userApi } from '../../infrastructure/apis/api-management';
+import { setToken, setUser } from '../../application/state-slices/profile';
 import logo from "../../assets/PawGuardian_logo.png";
 
 const pwRules = (pw: string) => ({
@@ -14,6 +16,7 @@ const pwRules = (pw: string) => ({
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [form, setForm] = useState({ email: '', username: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
 
@@ -31,9 +34,19 @@ const RegisterPage: React.FC = () => {
     }
     setLoading(true);
     try {
-      await authApi.register({ registerDto: { email: form.email, username: form.username, password: form.password } });
-      toast.success('Account created! Please sign in.');
-      navigate('/login');
+      const response = await authApi.register({ registerDto: { email: form.email, username: form.username, password: form.password } });
+      if (response.accessToken) {
+        dispatch(setToken(response.accessToken));
+        try {
+          const profile = await userApi.getMyProfile();
+          dispatch(setUser({ id: profile.id, username: profile.username, email: profile.email, roles: profile.roles ? Array.from(profile.roles) : [] }));
+        } catch { /* non-critical */ }
+        toast.success('Account created! Welcome!');
+        navigate('/home');
+      } else {
+        toast.success('Account created! Please sign in.');
+        navigate('/login');
+      }
     } catch (err: unknown) {
       let message = 'Registration failed. Please try again.';
       try {

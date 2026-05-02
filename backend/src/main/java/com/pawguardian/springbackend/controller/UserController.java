@@ -46,6 +46,12 @@ public class UserController {
                 .build());
     }
 
+    // List vets for any users
+    @GetMapping("/vets")
+    public ResponseEntity<List<UserResponseDto>> getAllVets() {
+        return ResponseEntity.ok(userService.getAllVets());
+    }
+
     // Vet endpoints
 
     @GetMapping("/vet/patients")

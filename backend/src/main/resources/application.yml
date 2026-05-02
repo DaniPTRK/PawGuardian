@@ -21,6 +21,9 @@ spring:
     baseline-version: 0
     connect-retries: 10  # Retry 10 times
     connect-retries-interval: 10  # Wait 10 seconds between retries
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/pawguardian}
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -55,3 +58,19 @@ admin:
 
 geofencing:
   alert-cooldown-minutes: ${GEOFENCE_COOLDOWN:5}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info,metrics,loggers
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  metrics:
+    tags:
+      application: pawguardian-backend

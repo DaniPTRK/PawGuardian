@@ -2,6 +2,7 @@
 /* eslint-disable */
 export * from './AuthControllerApi';
 export * from './DeviceControllerApi';
+export * from './FeedbackControllerApi';
 export * from './PetControllerApi';
 export * from './RoleControllerApi';
 export * from './SafeZoneControllerApi';

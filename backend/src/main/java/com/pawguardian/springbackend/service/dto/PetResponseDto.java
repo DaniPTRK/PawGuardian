@@ -3,6 +3,8 @@ package com.pawguardian.springbackend.service.dto;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Set;
+
 @Data
 @Builder
 public class PetResponseDto {
@@ -12,4 +14,5 @@ public class PetResponseDto {
     private String breed;
     private Integer age;
     private String ownerEmail;
+    private Set<Long> assignedVetIds;
 }

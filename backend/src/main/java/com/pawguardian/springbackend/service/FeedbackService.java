@@ -23,7 +23,10 @@ public class FeedbackService {
                 .userEmail(userEmail)
                 .category(dto.getCategory())
                 .rating(dto.getRating())
-                .subscribe(dto.getSubscribe() != null ? dto.getSubscribe() : false)
+                .wouldRecommend(dto.getWouldRecommend())
+                .mailAccuracyGood(dto.getMailAccuracyGood() != null ? dto.getMailAccuracyGood() : false)
+                .experienceFriendly(dto.getExperienceFriendly() != null ? dto.getExperienceFriendly() : false)
+                .vetSatisfied(dto.getVetSatisfied() != null ? dto.getVetSatisfied() : false)
                 .message(dto.getMessage())
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -56,7 +59,10 @@ public class FeedbackService {
                 .userEmail(f.getUserEmail())
                 .category(f.getCategory())
                 .rating(f.getRating())
-                .subscribe(f.getSubscribe())
+                .wouldRecommend(f.getWouldRecommend())
+                .mailAccuracyGood(f.getMailAccuracyGood())
+                .experienceFriendly(f.getExperienceFriendly())
+                .vetSatisfied(f.getVetSatisfied())
                 .message(f.getMessage())
                 .createdAt(f.getCreatedAt())
                 .build();

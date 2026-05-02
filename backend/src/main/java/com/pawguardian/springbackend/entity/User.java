@@ -69,10 +69,19 @@ public class User implements UserDetails {
         return password;
     }
 
-    // Set email as username
+    // Set email as username for Spring Sec
     @Override
     public String getUsername() {
         return email;
+    }
+
+    // Return the actual username
+    public String getDisplayUsername() {
+        return username;
+    }
+
+    public void setDisplayUsername(String username) {
+        this.username = username;
     }
 
     @Override

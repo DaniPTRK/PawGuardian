@@ -3,15 +3,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Shield, Pencil, Trash2, PawPrint, Search, ChevronLeft, ChevronRight, UserCheck } from 'lucide-react';
+import { User, Mail, Shield, Pencil, Trash2, PawPrint, Search, ChevronLeft, ChevronRight, UserCheck, Check, X } from 'lucide-react';
 import { userApi, petApi } from '../../infrastructure/apis/api-management';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
 import { setUser, logout } from '../../application/state-slices/profile';
-import type { PetResponseDto, PetRequestDto } from '../../infrastructure/apis/client/models';
+import type { PetResponseDto, PetRequestDto, UserResponseDto } from '../../infrastructure/apis/client/models';
 import { useDebounce } from '../../infrastructure/hooks/useDebounce';
 
 const PETS_PER_PAGE = 5;
 const emptyForm: PetRequestDto = { name: '', species: '', breed: '', age: 0 };
+
+const pwRules = (pw: string) => ({
+  minLength: pw.length >= 8,
+  hasUpper: /[A-Z]/.test(pw),
+  hasDigit: /\d/.test(pw),
+  hasSpecial: /[^A-Za-z0-9]/.test(pw),
+});
 
 const ProfilePage: React.FC = () => {
   const { user } = useOwnUser();
@@ -31,7 +38,17 @@ const ProfilePage: React.FC = () => {
       toast.success('Profile updated!');
       setEditMode(false);
     },
-    onError: () => toast.error('Failed to update profile'),
+    onError: async (err: unknown) => {
+      let message = 'Failed to update profile';
+      try {
+        const res = err as { json?: () => Promise<{ message?: string }> };
+        if (res.json) {
+          const body = await res.json();
+          if (body?.message) message = body.message;
+        }
+      } catch { /* ignore */ }
+      toast.error(message, { duration: 5000 });
+    },
   });
 
   const handleProfileSubmit = (e: React.FormEvent) => {
@@ -67,15 +84,11 @@ const ProfilePage: React.FC = () => {
 
   const { data: pets = [] } = useQuery({ queryKey: ['pets'], queryFn: () => petApi.getMyPets() });
 
-  // Fetch all users to find vets
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['allUsers'],
-    queryFn: () => userApi.getAllUsers(),
-    retry: false,
-    // only admins can call this
-    // TODO: allow all users to pick their own vets, without waiting for admin confirmation
+  // Fetch vets for vet assignment
+  const { data: vets = [] } = useQuery({
+    queryKey: ['vets'],
+    queryFn: () => userApi.getAllVets(),
   });
-  const vets = allUsers.filter(u => u.roles && Array.from(u.roles).some(r => r.includes('VET')));
 
   // pagination & filtering
   const filtered = (pets as PetResponseDto[]).filter(p => {
@@ -104,8 +117,29 @@ const ProfilePage: React.FC = () => {
   const assignMutation = useMutation({
     mutationFn: ({ vetId, petId }: { vetId: number; petId: number }) =>
       userApi.assignPetToVet({ vetId, petId }),
-    onSuccess: () => { toast.success('Pet assigned to vet!'); setAssignTarget(null); setSelectedVetId(''); },
-    onError: () => toast.error('Failed to assign pet'),
+    onSuccess: async (_, { petId, vetId }) => {
+      await qc.invalidateQueries({ queryKey: ['pets'] });
+      const updatedPets = qc.getQueryData<PetResponseDto[]>(['pets']);
+      const updated = updatedPets?.find(p => p.id === petId);
+      if (updated) setAssignTarget(updated);
+      else setAssignTarget(prev => prev ? { ...prev, assignedVetIds: [...(prev.assignedVetIds ?? []), vetId] } : prev);
+      toast.success('Vet assigned!');
+      setSelectedVetId('');
+    },
+    onError: () => toast.error('Failed to assign vet'),
+  });
+  const removeVetMutation = useMutation({
+    mutationFn: ({ vetId, petId }: { vetId: number; petId: number }) =>
+      userApi.removePetFromVet({ vetId, petId }),
+    onSuccess: async (_, { petId, vetId }) => {
+      await qc.invalidateQueries({ queryKey: ['pets'] });
+      const updatedPets = qc.getQueryData<PetResponseDto[]>(['pets']);
+      const updated = updatedPets?.find(p => p.id === petId);
+      if (updated) setAssignTarget(updated);
+      else setAssignTarget(prev => prev ? { ...prev, assignedVetIds: (prev.assignedVetIds ?? []).filter(id => id !== vetId) } : prev);
+      toast.success('Vet removed!');
+    },
+    onError: () => toast.error('Failed to remove vet'),
   });
 
   const openAdd = () => { setEditPet(null); setPetForm(emptyForm); setShowPetModal(true); };
@@ -188,6 +222,23 @@ const ProfilePage: React.FC = () => {
                 placeholder="••••••••"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
               />
+              {profileForm.newPassword && (() => {
+                const rules = pwRules(profileForm.newPassword);
+                return (
+                  <ul className="mt-2 space-y-0.5 text-xs">
+                    {[
+                      { ok: rules.minLength, label: 'At least 8 characters' },
+                      { ok: rules.hasUpper, label: 'At least one uppercase letter' },
+                      { ok: rules.hasDigit, label: 'At least one digit' },
+                      { ok: rules.hasSpecial, label: 'At least one special character (!@#$...)' },
+                    ].map(r => (
+                      <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? 'text-green-500' : 'text-gray-400'}`}>
+                        {r.ok ? <Check size={12} /> : <X size={12} />} {r.label}
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </div>
             {profileForm.newPassword && (
               <div>
@@ -354,29 +405,67 @@ const ProfilePage: React.FC = () => {
       {assignTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-1">Assign to Vet</h2>
-            <p className="text-sm text-gray-500 mb-4">Assign <strong>{assignTarget.name}</strong> to a veterinarian</p>
-            <div className="space-y-2 mb-5">
-              {vets.map(vet => (
-                <label key={vet.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedVetId === vet.id ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <input type="radio" name="vet" value={vet.id} checked={selectedVetId === vet.id}
-                    onChange={() => setSelectedVetId(vet.id!)} className="accent-green-500" />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{vet.username}</p>
-                    <p className="text-xs text-gray-400">{vet.email}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">Manage Vets</h2>
+            <p className="text-sm text-gray-500 mb-4">Veterinarians for <strong>{assignTarget.name}</strong></p>
+
+            {/* Currently assigned vets */}
+            {vets.filter((v: UserResponseDto) => assignTarget.assignedVetIds?.includes(v.id!)).length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Currently assigned</p>
+                <div className="space-y-2">
+                  {vets.filter((v: UserResponseDto) => assignTarget.assignedVetIds?.includes(v.id!)).map((vet: UserResponseDto) => (
+                    <div key={vet.id} className="flex items-center justify-between p-3 rounded-xl border border-green-200 bg-green-50">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{vet.username}</p>
+                        <p className="text-xs text-gray-400">{vet.email}</p>
+                      </div>
+                      <button
+                        onClick={() => assignTarget.id && vet.id && removeVetMutation.mutate({ vetId: vet.id, petId: assignTarget.id! })}
+                        disabled={removeVetMutation.isPending}
+                        className="text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg flex items-center gap-1"
+                      >
+                        <X size={12} /> Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Unassigned vets */}
+            {vets.filter((v: UserResponseDto) => !assignTarget.assignedVetIds?.includes(v.id!)).length > 0 && (
+              <div className="mb-5">
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add a vet</p>
+                <div className="space-y-2">
+                  {vets.filter((v: UserResponseDto) => !assignTarget.assignedVetIds?.includes(v.id!)).map((vet: UserResponseDto) => (
+                    <label key={vet.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${selectedVetId === vet.id ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" name="vet" value={vet.id} checked={selectedVetId === vet.id}
+                        onChange={() => setSelectedVetId(vet.id!)} className="accent-green-500" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{vet.username}</p>
+                        <p className="text-xs text-gray-400">{vet.email}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {vets.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">No vets available</p>
+            )}
+
             <div className="flex gap-2">
-              <button onClick={() => setAssignTarget(null)} className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
-              <button
-                disabled={!selectedVetId || assignMutation.isPending}
-                onClick={() => assignTarget.id && selectedVetId && assignMutation.mutate({ vetId: Number(selectedVetId), petId: assignTarget.id })}
-                className="flex-1 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium disabled:opacity-50"
-              >
-                Assign
-              </button>
+              <button onClick={() => { setAssignTarget(null); setSelectedVetId(''); }} className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50">Close</button>
+              {selectedVetId !== '' && (
+                <button
+                  disabled={assignMutation.isPending}
+                  onClick={() => assignTarget.id && selectedVetId && assignMutation.mutate({ vetId: Number(selectedVetId), petId: assignTarget.id! })}
+                  className="flex-1 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium disabled:opacity-50"
+                >
+                  Assign
+                </button>
+              )}
             </div>
           </div>
         </div>
