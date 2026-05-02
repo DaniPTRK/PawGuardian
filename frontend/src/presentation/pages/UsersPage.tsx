@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Search, Pencil, Trash2, ShieldPlus, ShieldMinus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Pencil, Trash2, ShieldPlus, ShieldMinus, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { userApi } from '../../infrastructure/apis/api-management';
 import type { UserResponseDto } from '../../infrastructure/apis/client/models';
 import { useDebounce } from '../../infrastructure/hooks/useDebounce';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
 
 const PER_PAGE = 8;
-const AVAILABLE_ROLES = ['ROLE_USER', 'ROLE_VET', 'ROLE_ADMIN'];
+const AVAILABLE_ROLES = ['OWNER', 'VET', 'ADMIN'];
+
+const pwRules = (pw: string) => ({
+  minLength: pw.length >= 8,
+  hasUpper: /[A-Z]/.test(pw),
+  hasDigit: /\d/.test(pw),
+  hasSpecial: /[^A-Za-z0-9]/.test(pw),
+});
 
 const UsersPage: React.FC = () => {
   const { user: me } = useOwnUser();
@@ -35,7 +42,7 @@ const UsersPage: React.FC = () => {
     enabled: !!isAdmin,
   });
 
-  const filtered = users.filter(u => {
+  const filtered = [...users].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)).filter(u => {
     const q = debouncedSearch.toLowerCase();
     return !q || u.username?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || String(u.id).includes(q);
   });
@@ -46,7 +53,17 @@ const UsersPage: React.FC = () => {
     mutationFn: ({ id, dto }: { id: number; dto: { username?: string; newPassword?: string } }) =>
       userApi.updateUserById({ userId: id, updateUserDto: dto }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('User updated'); setEditTarget(null); },
-    onError: () => toast.error('Failed to update user'),
+    onError: async (err: unknown) => {
+      let message = 'Failed to update user';
+      try {
+        const res = err as { json?: () => Promise<{ message?: string }> };
+        if (res.json) {
+          const body = await res.json();
+          if (body?.message) message = body.message;
+        }
+      } catch { /* ignore */ }
+      toast.error(message, { duration: 5000 });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -136,7 +153,7 @@ const UsersPage: React.FC = () => {
                     <div className="flex flex-wrap gap-1">
                       {Array.from(u.roles ?? []).map(role => (
                         <span key={role} className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
-                          {role.replace('ROLE_', '')}
+                          {role}
                         </span>
                       ))}
                     </div>
@@ -180,6 +197,23 @@ const UsersPage: React.FC = () => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">New Password <span className="text-gray-400 font-normal">(blank = keep)</span></label>
                 <input type="password" value={editForm.newPassword} onChange={e => setEditForm(f => ({ ...f, newPassword: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                {editForm.newPassword && (() => {
+                  const rules = pwRules(editForm.newPassword);
+                  return (
+                    <ul className="mt-2 space-y-0.5 text-xs">
+                      {[
+                        { ok: rules.minLength, label: 'At least 8 characters' },
+                        { ok: rules.hasUpper, label: 'At least one uppercase letter' },
+                        { ok: rules.hasDigit, label: 'At least one digit' },
+                        { ok: rules.hasSpecial, label: 'At least one special character (!@#$...)' },
+                      ].map(r => (
+                        <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? 'text-green-500' : 'text-gray-400'}`}>
+                          {r.ok ? <Check size={12} /> : <X size={12} />} {r.label}
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setEditTarget(null)} className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
@@ -221,10 +255,10 @@ const UsersPage: React.FC = () => {
                 const has = Array.from(roleTarget.roles ?? []).includes(role);
                 return (
                   <div key={role} className="flex items-center justify-between p-3 rounded-xl border border-gray-200">
-                    <span className="text-sm font-medium text-gray-700">{role.replace('ROLE_', '')}</span>
+                    <span className="text-sm font-medium text-gray-700">{role}</span>
                     {has ? (
                       <button
-                        onClick={() => roleTarget.id && removeRoleMutation.mutate({ userId: roleTarget.id, role: role.replace('ROLE_', '') },
+                        onClick={() => roleTarget.id && removeRoleMutation.mutate({ userId: roleTarget.id, role },
                           { onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setRoleTarget(prev => prev ? { ...prev, roles: new Set([...Array.from(prev.roles ?? []).filter(r => r !== role)]) } : null); } })}
                         className="flex items-center gap-1 text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded-lg"
                       >
@@ -232,7 +266,7 @@ const UsersPage: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() => roleTarget.id && promoteMutation.mutate({ userId: roleTarget.id, role: role.replace('ROLE_', '') },
+                        onClick={() => roleTarget.id && promoteMutation.mutate({ userId: roleTarget.id, role },
                           { onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setRoleTarget(prev => prev ? { ...prev, roles: new Set([...Array.from(prev.roles ?? []), role]) } : null); } })}
                         className="flex items-center gap-1 text-xs text-green-600 hover:bg-green-50 px-2 py-1 rounded-lg"
                       >

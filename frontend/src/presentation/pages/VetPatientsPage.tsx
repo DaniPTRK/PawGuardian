@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -27,6 +28,21 @@ const PatientCard: React.FC<{ pet: PetResponseDto }> = ({ pet }) => {
     enabled: !!pet.id && open,
     refetchInterval: open ? 30_000 : false,
   });
+
+  const { data: history = [] } = useQuery<HealthMetricDto[]>({
+    queryKey: ['vet-history', pet.id],
+    queryFn: () => vetApi.getHealthHistory({ petId: pet.id! }),
+    enabled: !!pet.id && open,
+  });
+
+  const chartData = history
+    .filter(h => h.timestamp)
+    .sort((a, b) => new Date(a.timestamp!).getTime() - new Date(b.timestamp!).getTime())
+    .map(h => ({
+      time: new Date(h.timestamp!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      heartRate: h.heartRate,
+      temperature: h.temperature,
+    }));
 
   const hasLoc = telemetry?.latitude != null && telemetry?.longitude != null;
   const lastUpdated = telemetry?.timestamp ? new Date(telemetry.timestamp).toLocaleString() : 'N/A';
@@ -81,6 +97,36 @@ const PatientCard: React.FC<{ pet: PetResponseDto }> = ({ pet }) => {
                   <Popup>{pet.name}</Popup>
                 </Marker>
               </MapContainer>
+            </div>
+          )}
+
+          {/* Health history charts */}
+          {chartData.length > 0 && (
+            <div className="space-y-3">
+              <div className="bg-red-50 rounded-xl p-3">
+                <p className="text-xs font-semibold text-gray-500 flex items-center gap-1 mb-2"><Heart size={12} className="text-red-400" /> Heart Rate History</p>
+                <ResponsiveContainer width="100%" height={120}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="time" tick={{ fontSize: 9 }} />
+                    <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="heartRate" stroke="#ef4444" strokeWidth={1.5} dot={{ r: 1.5 }} name="HR (bpm)" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="bg-orange-50 rounded-xl p-3">
+                <p className="text-xs font-semibold text-gray-500 flex items-center gap-1 mb-2"><Thermometer size={12} className="text-orange-400" /> Temperature History</p>
+                <ResponsiveContainer width="100%" height={120}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="time" tick={{ fontSize: 9 }} />
+                    <YAxis tick={{ fontSize: 9 }} domain={['auto', 'auto']} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={1.5} dot={{ r: 1.5 }} name="Temp (°C)" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
         </div>

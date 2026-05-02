@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Home, Map, Activity, User, MessageSquare, LogOut, Shield, Stethoscope } from 'lucide-react';
+import { Home, Map, Activity, User, MessageSquare, LogOut, Shield, Stethoscope, Radio } from 'lucide-react';
 import { logout } from '../../../application/state-slices/profile';
 import { useOwnUser } from '../../../infrastructure/hooks/useOwnUser';
 import logo from '../../../assets/PawGuardian_logo.png';
@@ -10,6 +10,7 @@ const baseNavItems = [
   { to: '/home',     label: 'Home',     Icon: Home },
   { to: '/map',      label: 'Map',      Icon: Map },
   { to: '/health',   label: 'Health',   Icon: Activity },
+  { to: '/dev-sim', label: 'DevSim', Icon: Radio },
   { to: '/profile',  label: 'Profile',  Icon: User },
   { to: '/feedback', label: 'Feedback', Icon: MessageSquare },
 ];
@@ -74,7 +75,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </header>
 
-      {/* ── Page content ── */}
+      {/* Page content */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-6 pb-24 md:pb-8">
         {children}
       </main>
