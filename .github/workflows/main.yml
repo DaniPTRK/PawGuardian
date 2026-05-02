@@ -75,3 +75,19 @@ jobs:
           context: ./frontend
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/pawguardian-frontend:latest
+
+      # Telemetry Simulator
+      - name: Build Docker Image - Telemetry Simulator (validate only)
+        if: github.ref != 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/telemetry-simulator
+          push: false
+
+      - name: Build and Push Docker Image - Telemetry Simulator
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/telemetry-simulator
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/pawguardian-telemetry-simulator:latest
