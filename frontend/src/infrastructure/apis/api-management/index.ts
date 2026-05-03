@@ -1,5 +1,5 @@
 import { Configuration } from '../client/runtime';
-import { AuthControllerApi, PetControllerApi, UserControllerApi, DeviceControllerApi, TelemetryControllerApi, SafeZoneControllerApi, VetControllerApi } from '../client/apis';
+import { AuthControllerApi, PetControllerApi, UserControllerApi, DeviceControllerApi, TelemetryControllerApi, SafeZoneControllerApi, VetControllerApi, SpeciesControllerApi } from '../client/apis';
 
 const getToken = () => localStorage.getItem('token') ?? '';
 
@@ -18,4 +18,5 @@ export const deviceApi = new DeviceControllerApi(config);
 export const telemetryApi = new TelemetryControllerApi(config);
 export const safeZoneApi = new SafeZoneControllerApi(config);
 export const vetApi = new VetControllerApi(config);
+export const speciesApi = new SpeciesControllerApi(config);
 

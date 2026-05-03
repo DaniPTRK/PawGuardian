@@ -25,7 +25,7 @@ const LoginPage: React.FC = () => {
         try {
           const profile = await userApi.getMyProfile();
           dispatch(setUser({ id: profile.id, username: profile.username, email: profile.email, roles: profile.roles ? Array.from(profile.roles) : [] }));
-        } catch { }
+        } catch { /* ignore */ }
         goToHome();
       }
     } catch {

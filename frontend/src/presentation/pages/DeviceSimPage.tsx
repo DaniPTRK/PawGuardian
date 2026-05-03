@@ -120,7 +120,7 @@ const DeviceSimPage: React.FC = () => {
       stopPolling();
       setSimStatus(null);
       toast.success('Simulator reset.');
-    } catch { }
+    } catch { /* ignore */ }
   };
 
   const handleAddPet = async (petId: number) => {

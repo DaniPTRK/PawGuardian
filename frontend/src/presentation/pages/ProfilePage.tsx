@@ -4,11 +4,11 @@ import { useDispatch } from 'react-redux';
 import { useAppRouter } from '../../infrastructure/hooks/useAppRouter';
 import toast from 'react-hot-toast';
 import { User, Mail, Shield, Pencil, PawPrint, UserCheck, Trash2, X } from 'lucide-react';
-import { userApi, petApi } from '../../infrastructure/apis/api-management';
+import { userApi, petApi, speciesApi } from '../../infrastructure/apis/api-management';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
 import { setUser, logout } from '../../application/state-slices/profile';
 import { extractErrorMessage } from '../../application/models/ErrorResponse';
-import type { PetResponseDto, PetRequestDto, UserResponseDto } from '../../infrastructure/apis/client/models';
+import type { PetResponseDto, PetRequestDto, UserResponseDto, PetSpecies } from '../../infrastructure/apis/client/models';
 import { useDebounce } from '../../infrastructure/hooks/useDebounce';
 import { ConfirmModal, Pagination, PasswordRules, SearchInput } from '../components/ui';
 
@@ -77,6 +77,12 @@ const ProfilePage: React.FC = () => {
   const { data: vets = [] } = useQuery({
     queryKey: ['vets'],
     queryFn: () => userApi.getAllVets(),
+  });
+
+  // Fetch available species for the dropdown
+  const { data: speciesList = [] } = useQuery<PetSpecies[]>({
+    queryKey: ['species'],
+    queryFn: () => speciesApi.getAllSpecies(),
   });
 
   // pagination & filtering
@@ -323,13 +329,28 @@ const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-4">{editPet ? 'Edit Pet' : 'Add Pet'}</h2>
             <form onSubmit={handlePetSubmit} className="space-y-3">
-              {(['name', 'species', 'breed'] as const).map(field => (
+              {(['name', 'breed'] as const).map(field => (
                 <div key={field}>
                   <label className="block text-xs font-medium text-gray-600 mb-1 capitalize">{field}</label>
                   <input name={field} value={petForm[field] ?? ''} onChange={handlePetFormChange} required={field !== 'breed'}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
                 </div>
               ))}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1 capitalize">Species</label>
+                <select
+                  name="species"
+                  value={petForm.species ?? ''}
+                  onChange={e => setPetForm(f => ({ ...f, species: e.target.value }))}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+                >
+                  <option value="">Select a species...</option>
+                  {speciesList.map(s => (
+                    <option key={s.id} value={s.name ?? ''}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Age (years)</label>
                 <input name="age" type="number" min={0} value={petForm.age} onChange={handlePetFormChange} required
