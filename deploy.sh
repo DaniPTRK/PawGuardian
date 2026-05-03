@@ -9,7 +9,7 @@ else
 fi
 
 echo ""
-echo "PawGuardian — Build & Deploy locally"
+echo "PawGuardian - Build & Deploy locally"
 
 # Build Backend
 echo ""
@@ -53,3 +53,11 @@ docker stack deploy -c docker-compose.yml pawguardian --with-registry-auth
 echo ""
 echo "Deployment complete!"
 echo ""
+echo "Services:"
+echo "  Frontend:    http://localhost:3000"
+echo "  Backend:     http://localhost:8090"
+echo "  Kong:        http://localhost:8000"
+echo "  pgAdmin:     http://localhost:5050"
+echo "  Portainer:   http://localhost:9000"
+echo "  Prometheus:   http://localhost:9090"
+echo "  Grafana:     http://localhost:3001"

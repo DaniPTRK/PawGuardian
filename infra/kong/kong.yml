@@ -1,0 +1,55 @@
+_format_version: "3.0"
+
+services:
+  # auth service
+  - name: auth-service
+    url: http://backend:8090
+    routes:
+      - name: auth-route
+        paths:
+          - /api/v1/auth
+        strip_path: false
+
+  # pet service (included in backend)
+  - name: pet-service
+    url: http://backend:8090
+    routes:
+      - name: pet-route
+        paths:
+          - /api/v1/pets
+          - /api/v1/devices
+          - /api/v1/safe-zones
+          - /api/v1/species
+          - /api/v1/users
+          - /api/v1/roles
+          - /api/v1/vet
+          - /api/v1/feedback
+        strip_path: false
+
+  # service used for telemetry management
+  - name: telemetry-service
+    url: http://backend:8090
+    routes:
+      - name: telemetry-route
+        paths:
+          - /api/v1/telemetry
+        strip_path: false
+
+  # frontend
+  - name: frontend-service
+    url: http://frontend:80
+    routes:
+      - name: frontend-route
+        paths:
+          - /
+        strip_path: false
+
+  # route for apis
+  - name: swagger-service
+    url: http://backend:8090
+    routes:
+      - name: swagger-route
+        paths:
+          - /swagger-ui
+          - /v3/api-docs
+        strip_path: false

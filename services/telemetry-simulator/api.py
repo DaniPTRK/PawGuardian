@@ -90,9 +90,9 @@ def simulation_loop():
                         f'({reading["latitude"]:.5f}, {reading["longitude"]:.5f})'
                     )
                 else:
-                    logger.warning(f'Pet {pid}: HTTP {resp.status_code} — {resp.text[:200]}')
+                    logger.warning(f'Pet {pid}: HTTP {resp.status_code} {resp.text[:200]}')
             except http.RequestException as e:
-                logger.error(f'Pet {pid}: Failed to send — {e}')
+                logger.error(f'Pet {pid}: Failed to send {e}')
 
         time.sleep(interval)
 
