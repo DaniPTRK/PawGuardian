@@ -4,7 +4,7 @@ import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { store } from './application/store'
-import { LanguageProvider } from './application/context/LanguageContextProvider'
+import LanguageProvider from './application/context/LanguageContextProvider'
 import './index.css'
 import App from './App.tsx'
 

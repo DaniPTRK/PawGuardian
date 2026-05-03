@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const API_BASE = 'http://192.168.0.2:8090';
 
+// What the feedback form contains
 type FeedbackItem = {
   id: number;
   userEmail: string;
@@ -132,7 +133,7 @@ const FeedbackPage: React.FC = () => {
       {/* Submit feedback form */}
       <div className="max-w-lg mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Feedback</h1>
-        <p className="text-sm text-gray-500 mb-6">Help us improve PawGuardian — your opinion matters!</p>
+        <p className="text-sm text-gray-500 mb-6">Help us improve PawGuardian - your opinion matters!</p>
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -294,7 +295,7 @@ const FeedbackPage: React.FC = () => {
                       <td className="px-4 py-3 text-gray-600">{'⭐'.repeat(fb.rating)}</td>
                       <td className="px-4 py-3 text-gray-600 capitalize">{fb.wouldRecommend}</td>
                       <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{fb.message}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : '—'}</td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">{fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : '-'}</td>
                       <td className="px-4 py-3 text-center">
                         <button
                           onClick={() => deleteFeedbackMutation.mutate(fb.id)}

@@ -2,45 +2,22 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
   ChevronDown, ChevronUp, Heart, Map, MessageSquare, PawPrint,
-  Thermometer, BatteryLow, BatteryMedium, BatteryFull, MapPin,
+  Thermometer, BatteryMedium, MapPin,
 } from 'lucide-react';
 import { petApi, telemetryApi } from '../../infrastructure/apis/api-management';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
-
-const greenIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-});
+import { greenLeafletIcon } from '../../infrastructure/utils/mapUtils';
+import { ROUTES } from '../../routes';
+import BatteryIndicator from '../components/ui/BatteryIndicator';
+import StatCard from '../components/ui/StatCard';
+import EmptyState from '../components/ui/EmptyState';
 
 type PetSummary = { id?: number; name?: string; species?: string; breed?: string; age?: number };
 
-// Battery indicator component
-const BatteryIndicator: React.FC<{ level?: number }> = ({ level }) => {
-  if (level == null) return <span className="text-gray-400 text-sm">—</span>;
-  const good = level > 50;
-  const mid = level > 20;
-  const Icon = good ? BatteryFull : mid ? BatteryMedium : BatteryLow;
-  const color = good ? 'text-blue-500' : mid ? 'text-yellow-500' : 'text-red-500';
-  const label = good ? 'Good' : mid ? 'Fair' : 'Low — Charge soon';
-  return (
-    <div className="flex items-center gap-2">
-      <Icon size={20} className={color} />
-      <div>
-        <p className="text-sm font-bold text-gray-800">{level}%</p>
-        <p className={`text-xs font-medium ${color}`}>{label}</p>
-      </div>
-    </div>
-  );
-};
-
-// Individual pet dashboard card
-const PetDashboard: React.FC<{ pet: PetSummary; others: PetSummary[] }> = ({ pet, others }) => {
-  const [othersOpen, setOthersOpen] = useState(false);
+const PetDashboard: React.FC<{ pet: PetSummary }> = ({ pet }) => {
   const [mapOpen, setMapOpen] = useState(false);
 
   const { data: telemetry } = useQuery({
@@ -51,69 +28,50 @@ const PetDashboard: React.FC<{ pet: PetSummary; others: PetSummary[] }> = ({ pet
   });
 
   const hasLocation = telemetry?.latitude != null && telemetry?.longitude != null;
-  const lastUpdated = telemetry?.timestamp
-    ? new Date(telemetry.timestamp).toLocaleString()
-    : null;
+  const lastUpdated = telemetry?.timestamp ? new Date(telemetry.timestamp).toLocaleString() : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Pet header */}
-      <div className="bg-gradient-to-r from-green-500 to-green-400 px-6 py-5 text-white flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-            <PawPrint size={28} className="text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold leading-tight">{pet.name}</h2>
-            <p className="text-green-100 text-sm mt-0.5">
-              {[pet.breed, pet.species].filter(Boolean).join(' · ')}
-              {pet.age != null && <span> · {pet.age} yrs old</span>}
-            </p>
-          </div>
+      <div className="bg-gradient-to-r from-green-500 to-green-400 px-6 py-5 text-white flex items-center gap-4">
+        <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
+          <PawPrint size={28} className="text-white" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold leading-tight">{pet.name}</h2>
+          <p className="text-green-100 text-sm mt-0.5">
+            {[pet.breed, pet.species].filter(Boolean).join(' · ')}
+            {pet.age != null && <span> · {pet.age} yrs old</span>}
+          </p>
         </div>
       </div>
 
       {/* Stats grid */}
       <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-
-        {/* Heart rate */}
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-            <Heart size={20} className="text-red-400" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Heart Rate</p>
-            <p className="text-2xl font-bold text-gray-800 leading-tight">
-              {telemetry?.heartRate ?? '—'}
-              {telemetry?.heartRate != null && <span className="text-sm font-normal text-gray-400 ml-1">bpm</span>}
-            </p>
-          </div>
-        </div>
-
-        {/* Temperature */}
-        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
-            <Thermometer size={20} className="text-orange-400" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Temperature</p>
-            <p className="text-2xl font-bold text-gray-800 leading-tight">
-              {telemetry?.temperature != null ? `${telemetry.temperature}°` : '—'}
-              {telemetry?.temperature != null && <span className="text-sm font-normal text-gray-400 ml-1">C</span>}
-            </p>
-          </div>
-        </div>
-
-        {/* Collar battery */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center gap-4">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-            <BatteryMedium size={20} className="text-blue-400" />
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Collar Battery</p>
-            <BatteryIndicator level={telemetry?.batteryLevel} />
-          </div>
-        </div>
+        <StatCard
+          icon={<Heart size={20} className="text-red-400" />}
+          label="Heart Rate"
+          value={telemetry?.heartRate}
+          unit="bpm"
+          bg="bg-red-50"
+          border="border-red-100"
+        />
+        <StatCard
+          icon={<Thermometer size={20} className="text-orange-400" />}
+          label="Temperature"
+          value={telemetry?.temperature != null ? `${telemetry.temperature}°` : null}
+          unit="C"
+          bg="bg-orange-50"
+          border="border-orange-100"
+        />
+        <StatCard
+          icon={<BatteryMedium size={20} className="text-blue-400" />}
+          label="Collar Battery"
+          value={null}
+          bg="bg-blue-50"
+          border="border-blue-100"
+          extra={<BatteryIndicator level={telemetry?.batteryLevel} />}
+        />
       </div>
 
       {/* Location section */}
@@ -127,17 +85,12 @@ const PetDashboard: React.FC<{ pet: PetSummary; others: PetSummary[] }> = ({ pet
           {lastUpdated && <span className="font-normal text-gray-400 text-xs ml-1">· {lastUpdated}</span>}
           {mapOpen ? <ChevronUp size={14} className="ml-auto" /> : <ChevronDown size={14} className="ml-auto" />}
         </button>
-
         {mapOpen && (
           hasLocation ? (
             <div className="rounded-xl overflow-hidden border border-gray-100" style={{ height: 280 }}>
-              <MapContainer
-                center={[telemetry!.latitude!, telemetry!.longitude!]}
-                zoom={15}
-                style={{ height: '100%', width: '100%' }}
-              >
+              <MapContainer center={[telemetry!.latitude!, telemetry!.longitude!]} zoom={15} style={{ height: '100%', width: '100%' }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[telemetry!.latitude!, telemetry!.longitude!]} icon={greenIcon}>
+                <Marker position={[telemetry!.latitude!, telemetry!.longitude!]} icon={greenLeafletIcon}>
                   <Popup>{pet.name}</Popup>
                 </Marker>
               </MapContainer>
@@ -159,11 +112,8 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Greeting */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Good day, {user?.username ?? 'Pet Owner'}
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800">Good day, {user?.username ?? 'Pet Owner'}</h1>
         <p className="text-gray-400 text-sm mt-1">Here's your pet dashboard.</p>
       </div>
 
@@ -179,32 +129,25 @@ const HomePage: React.FC = () => {
           </p>
           <p className="text-xs text-gray-400 mt-1 font-medium">Species</p>
         </div>
-        <Link to="/map" className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-1">
+        <Link to={ROUTES.MAP} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-1">
           <Map size={22} className="text-yellow-500" />
           <span className="text-xs font-semibold text-gray-600">Safe Zones</span>
         </Link>
-        <Link to="/feedback" className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-1">
+        <Link to={ROUTES.FEEDBACK} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-1">
           <MessageSquare size={22} className="text-green-400" />
           <span className="text-xs font-semibold text-gray-600">Feedback</span>
         </Link>
       </div>
 
-      {/* Per-pet dashboards */}
       {pets.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center">
-          <PawPrint size={40} className="text-gray-200 mx-auto mb-4" />
-          <p className="text-gray-400">No pets added yet.</p>
-          <Link to="/pets" className="mt-3 inline-block text-sm text-green-500 font-medium hover:underline">Add your first pet →</Link>
-        </div>
+        <EmptyState
+          icon={<PawPrint size={40} className="text-gray-200" />}
+          message="No pets added yet."
+          action={<Link to="/profile" className="text-sm text-green-500 font-medium hover:underline">Add your first pet →</Link>}
+        />
       ) : (
         <div className="space-y-6">
-          {pets.map((pet, idx) => (
-            <PetDashboard
-              key={pet.id}
-              pet={pet}
-              others={pets.filter((_, i) => i !== idx)}
-            />
-          ))}
+          {pets.map(pet => <PetDashboard key={pet.id} pet={pet} />)}
         </div>
       )}
     </div>

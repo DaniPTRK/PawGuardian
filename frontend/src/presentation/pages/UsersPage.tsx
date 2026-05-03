@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Search, Pencil, Trash2, ShieldPlus, ShieldMinus, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { Pencil, Trash2, ShieldPlus, ShieldMinus } from 'lucide-react';
 import { userApi } from '../../infrastructure/apis/api-management';
 import type { UserResponseDto } from '../../infrastructure/apis/client/models';
 import { useDebounce } from '../../infrastructure/hooks/useDebounce';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
+import { extractErrorMessage } from '../../application/models/ErrorResponse';
+import { PageHeader, SearchInput, ConfirmModal, Pagination, PasswordRules } from '../components/ui';
 
 const PER_PAGE = 8;
 const AVAILABLE_ROLES = ['OWNER', 'VET', 'ADMIN'];
 
-const pwRules = (pw: string) => ({
-  minLength: pw.length >= 8,
-  hasUpper: /[A-Z]/.test(pw),
-  hasDigit: /\d/.test(pw),
-  hasSpecial: /[^A-Za-z0-9]/.test(pw),
-});
 
 const UsersPage: React.FC = () => {
   const { user: me } = useOwnUser();
@@ -54,14 +50,7 @@ const UsersPage: React.FC = () => {
       userApi.updateUserById({ userId: id, updateUserDto: dto }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('User updated'); setEditTarget(null); },
     onError: async (err: unknown) => {
-      let message = 'Failed to update user';
-      try {
-        const res = err as { json?: () => Promise<{ message?: string }> };
-        if (res.json) {
-          const body = await res.json();
-          if (body?.message) message = body.message;
-        }
-      } catch { /* ignore */ }
+      const message = await extractErrorMessage(err, 'Failed to update user');
       toast.error(message, { duration: 5000 });
     },
   });
@@ -109,22 +98,13 @@ const UsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-        <p className="text-sm text-gray-400 mt-1">View, edit, and manage all users. Admin only.</p>
-      </div>
+      <PageHeader title="User Management" subtitle="View, edit, and manage all users. Admin only." />
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Search by username, email, or ID..."
-          className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-        />
-      </div>
+      <SearchInput
+        value={search}
+        onChange={v => { setSearch(v); setPage(0); }}
+        placeholder="Search by username, email, or ID..."
+      />
 
       {/* Table */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -172,13 +152,15 @@ const UsersPage: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-50">
-          <span className="text-xs text-gray-500">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-50"><ChevronLeft size={14} /></button>
-            <span className="text-xs text-gray-600 px-1">Page {page + 1} / {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="p-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-50"><ChevronRight size={14} /></button>
-          </div>
+        <div className="px-4 py-3 border-t border-gray-50">
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={filtered.length}
+            itemLabel="user"
+            onPrev={() => setPage(p => Math.max(0, p - 1))}
+            onNext={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+          />
         </div>
       </div>
 
@@ -186,7 +168,7 @@ const UsersPage: React.FC = () => {
       {editTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Edit User — {editTarget.username}</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4">Edit User - {editTarget.username}</h2>
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Username</label>
@@ -197,23 +179,7 @@ const UsersPage: React.FC = () => {
                 <label className="block text-xs font-medium text-gray-600 mb-1">New Password <span className="text-gray-400 font-normal">(blank = keep)</span></label>
                 <input type="password" value={editForm.newPassword} onChange={e => setEditForm(f => ({ ...f, newPassword: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
-                {editForm.newPassword && (() => {
-                  const rules = pwRules(editForm.newPassword);
-                  return (
-                    <ul className="mt-2 space-y-0.5 text-xs">
-                      {[
-                        { ok: rules.minLength, label: 'At least 8 characters' },
-                        { ok: rules.hasUpper, label: 'At least one uppercase letter' },
-                        { ok: rules.hasDigit, label: 'At least one digit' },
-                        { ok: rules.hasSpecial, label: 'At least one special character (!@#$...)' },
-                      ].map(r => (
-                        <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? 'text-green-500' : 'text-gray-400'}`}>
-                          {r.ok ? <Check size={12} /> : <X size={12} />} {r.label}
-                        </li>
-                      ))}
-                    </ul>
-                  );
-                })()}
+                <PasswordRules password={editForm.newPassword} />
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setEditTarget(null)} className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
@@ -226,22 +192,14 @@ const UsersPage: React.FC = () => {
 
       {/* Delete User Modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Trash2 size={24} className="text-red-400" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-800 mb-2">Delete User</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Delete <strong>{deleteTarget.username}</strong> ({deleteTarget.email})? This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
-              <button onClick={() => deleteTarget.id && deleteMutation.mutate(deleteTarget.id)}
-                className="flex-1 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium">Delete</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Delete User"
+          message={<>Delete <strong>{deleteTarget.username}</strong> ({deleteTarget.email})? This cannot be undone.</>}
+          onConfirm={() => deleteTarget.id && deleteMutation.mutate(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+          confirmLabel="Delete"
+          isPending={deleteMutation.isPending}
+        />
       )}
 
       {/* Manage Roles Modal */}

@@ -1,29 +1,25 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useAppRouter } from '../../infrastructure/hooks/useAppRouter';
 import toast from 'react-hot-toast';
-import { User, Mail, Shield, Pencil, Trash2, PawPrint, Search, ChevronLeft, ChevronRight, UserCheck, Check, X } from 'lucide-react';
+import { User, Mail, Shield, Pencil, PawPrint, UserCheck, Trash2, X } from 'lucide-react';
 import { userApi, petApi } from '../../infrastructure/apis/api-management';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
 import { setUser, logout } from '../../application/state-slices/profile';
+import { extractErrorMessage } from '../../application/models/ErrorResponse';
 import type { PetResponseDto, PetRequestDto, UserResponseDto } from '../../infrastructure/apis/client/models';
 import { useDebounce } from '../../infrastructure/hooks/useDebounce';
+import { ConfirmModal, Pagination, PasswordRules, SearchInput } from '../components/ui';
 
 const PETS_PER_PAGE = 5;
 const emptyForm: PetRequestDto = { name: '', species: '', breed: '', age: 0 };
 
-const pwRules = (pw: string) => ({
-  minLength: pw.length >= 8,
-  hasUpper: /[A-Z]/.test(pw),
-  hasDigit: /\d/.test(pw),
-  hasSpecial: /[^A-Za-z0-9]/.test(pw),
-});
 
 const ProfilePage: React.FC = () => {
   const { user } = useOwnUser();
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const { goToLogin } = useAppRouter();
   const qc = useQueryClient();
 
   // Profile editing
@@ -39,14 +35,7 @@ const ProfilePage: React.FC = () => {
       setEditMode(false);
     },
     onError: async (err: unknown) => {
-      let message = 'Failed to update profile';
-      try {
-        const res = err as { json?: () => Promise<{ message?: string }> };
-        if (res.json) {
-          const body = await res.json();
-          if (body?.message) message = body.message;
-        }
-      } catch { /* ignore */ }
+      const message = await extractErrorMessage(err, 'Failed to update profile');
       toast.error(message, { duration: 5000 });
     },
   });
@@ -170,8 +159,8 @@ const ProfilePage: React.FC = () => {
             <User size={30} className="text-white" />
           </div>
           <div>
-            <p className="text-white font-bold text-xl">{user?.username ?? '—'}</p>
-            <p className="text-green-100 text-sm">{user?.email ?? '—'}</p>
+            <p className="text-white font-bold text-xl">{user?.username ?? '--'}</p>
+            <p className="text-green-100 text-sm">{user?.email ?? '--'}</p>
             <div className="flex flex-wrap gap-1 mt-2">
               {Array.from(user?.roles ?? []).map(role => (
                 <span key={role} className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -194,11 +183,11 @@ const ProfilePage: React.FC = () => {
             {[
               { icon: <User size={15} className="text-gray-400" />, label: 'Username', value: user?.username },
               { icon: <Mail size={15} className="text-gray-400" />, label: 'Email', value: user?.email },
-              { icon: <Shield size={15} className="text-gray-400" />, label: 'User ID', value: String(user?.id ?? '—') },
+              { icon: <Shield size={15} className="text-gray-400" />, label: 'User ID', value: String(user?.id ?? 'N/A') },
             ].map(({ icon, label, value }) => (
               <div key={label} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                 <span className="flex items-center gap-2 text-sm text-gray-500 font-medium">{icon}{label}</span>
-                <span className="text-sm font-semibold text-gray-800">{value ?? '—'}</span>
+                <span className="text-sm font-semibold text-gray-800">{value ?? 'N/A'}</span>
               </div>
             ))}
           </div>
@@ -222,23 +211,7 @@ const ProfilePage: React.FC = () => {
                 placeholder="••••••••"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
               />
-              {profileForm.newPassword && (() => {
-                const rules = pwRules(profileForm.newPassword);
-                return (
-                  <ul className="mt-2 space-y-0.5 text-xs">
-                    {[
-                      { ok: rules.minLength, label: 'At least 8 characters' },
-                      { ok: rules.hasUpper, label: 'At least one uppercase letter' },
-                      { ok: rules.hasDigit, label: 'At least one digit' },
-                      { ok: rules.hasSpecial, label: 'At least one special character (!@#$...)' },
-                    ].map(r => (
-                      <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? 'text-green-500' : 'text-gray-400'}`}>
-                        {r.ok ? <Check size={12} /> : <X size={12} />} {r.label}
-                      </li>
-                    ))}
-                  </ul>
-                );
-              })()}
+              <PasswordRules password={profileForm.newPassword} />
             </div>
             {profileForm.newPassword && (
               <div>
@@ -263,7 +236,7 @@ const ProfilePage: React.FC = () => {
 
         <div className="px-6 pb-5">
           <button
-            onClick={() => { dispatch(logout()); navigate('/login'); }}
+            onClick={() => { dispatch(logout()); goToLogin(); }}
             className="w-full py-2.5 text-sm font-semibold text-red-500 border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
           >
             Sign Out
@@ -284,16 +257,12 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* Search */}
-        <div className="relative mb-4">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Search by name, species, breed..."
-            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={v => { setSearch(v); setPage(0); }}
+          placeholder="Search by name, species, breed..."
+          className="mb-4"
+        />
 
         {/* Table */}
         <div className="overflow-x-auto rounded-xl border border-gray-100">
@@ -314,7 +283,7 @@ const ProfilePage: React.FC = () => {
                 <tr key={pet.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">{pet.name}</td>
                   <td className="px-4 py-3 text-gray-600">{pet.species}</td>
-                  <td className="px-4 py-3 text-gray-600">{pet.breed ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{pet.breed ?? 'N/A'}</td>
                   <td className="px-4 py-3 text-gray-600">{pet.age} yrs</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2 justify-center">
@@ -338,21 +307,17 @@ const ProfilePage: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">{filtered.length} pet{filtered.length !== 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-50">
-              <ChevronLeft size={14} />
-            </button>
-            <span className="text-xs text-gray-600 px-1">Page {page + 1} / {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} className="p-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-50">
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={filtered.length}
+          itemLabel="pet"
+          onPrev={() => setPage(p => Math.max(0, p - 1))}
+          onNext={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+        />
       </div>
 
-      {/* Add/Edit Pet Modal */}
+      {/* Add/Edit Pet Box */}
       {showPetModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
@@ -381,24 +346,16 @@ const ProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
+      {/* Delete Confirm Box */}
       {deleteTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center">
-            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Trash2 size={24} className="text-red-400" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-800 mb-2">Delete Pet</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2 text-sm border rounded-lg hover:bg-gray-50">Cancel</button>
-              <button onClick={() => deleteTarget.id && deleteMutation.mutate(deleteTarget.id)}
-                className="flex-1 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium">Delete</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Delete Pet"
+          message={<>Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This cannot be undone.</>}
+          onConfirm={() => deleteTarget.id && deleteMutation.mutate(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+          confirmLabel="Delete"
+          isPending={deleteMutation.isPending}
+        />
       )}
 
       {/* Assign to Vet Modal */}

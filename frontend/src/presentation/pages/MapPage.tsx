@@ -1,20 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, CircleMarker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PawPrint, Layers, Plus, Pencil, Trash2, Check, X, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { petApi, telemetryApi, safeZoneApi } from '../../infrastructure/apis/api-management';
 import type { SafeZoneResponseDto, GeofenceCheckResponseDto } from '../../infrastructure/apis/client/models';
+import { greenLeafletIcon } from '../../infrastructure/utils/mapUtils';
 
 const ZONE_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#f97316', '#ec4899'];
 
-const greenIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-});
 
 // Clickable map component for drawing zone vertices
 const ZoneDrawer: React.FC<{ onAdd: (lat: number, lng: number) => void; active: boolean }> = ({ onAdd, active }) => {
@@ -26,6 +21,7 @@ const MapPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: pets = [] } = useQuery({ queryKey: ['pets'], queryFn: () => petApi.getMyPets() });
   const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
+  const effectivePetId = useMemo(() => selectedPetId ?? pets[0]?.id ?? null, [selectedPetId, pets]);
   const [zonesVisible, setZonesVisible] = useState(true);
 
   // Zone editing state
@@ -34,24 +30,19 @@ const MapPage: React.FC = () => {
   const [newZoneName, setNewZoneName] = useState('');
   const [drawnVertices, setDrawnVertices] = useState<{ latitude: number; longitude: number }[]>([]);
 
-  useEffect(() => {
-    if (pets.length > 0 && selectedPetId === null) {
-      setSelectedPetId(pets[0].id ?? null);
-    }
-  }, [pets]);
-
   const { data: telemetry } = useQuery({
-    queryKey: ['telemetry-current', selectedPetId],
-    queryFn: () => telemetryApi.getCurrentStatus1({ petId: selectedPetId! }),
-    enabled: !!selectedPetId,
+    queryKey: ['telemetry-current', effectivePetId],
+    queryFn: () => telemetryApi.getCurrentStatus1({ petId: effectivePetId! }),
+    enabled: !!effectivePetId,
     refetchInterval: 30_000,
   });
 
   const { data: zones = [] } = useQuery({
-    queryKey: ['safe-zones', selectedPetId],
-    queryFn: () => safeZoneApi.getSafeZones1({ petId: selectedPetId! }),
-    enabled: !!selectedPetId,
+    queryKey: ['safe-zones', effectivePetId],
+    queryFn: () => safeZoneApi.getSafeZones1({ petId: effectivePetId! }),
+    enabled: !!effectivePetId,
   });
+
 
   const hasLocation = telemetry?.latitude != null && telemetry?.longitude != null;
 
@@ -62,27 +53,27 @@ const MapPage: React.FC = () => {
       petId: selectedPetId!,
       geofenceCheckRequestDto: { latitude: telemetry!.latitude!, longitude: telemetry!.longitude! },
     }),
-    enabled: !!selectedPetId && hasLocation && zones.length > 0,
+    enabled: !!effectivePetId && hasLocation && zones.length > 0,
     refetchInterval: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: (vars: { zoneName: string; vertices: { latitude: number; longitude: number }[] }) =>
-      safeZoneApi.createSafeZone({ petId: selectedPetId!, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone created'); resetDraw(); },
+      safeZoneApi.createSafeZone({ petId: effectivePetId!, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', effectivePetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone created'); resetDraw(); },
     onError: () => toast.error('Failed to create zone'),
   });
 
   const updateMutation = useMutation({
     mutationFn: (vars: { zoneId: number; zoneName: string; vertices: { latitude: number; longitude: number }[] }) =>
-      safeZoneApi.updateSafeZone({ petId: selectedPetId!, zoneId: vars.zoneId, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone updated'); resetDraw(); },
+      safeZoneApi.updateSafeZone({ petId: effectivePetId!, zoneId: vars.zoneId, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', effectivePetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone updated'); resetDraw(); },
     onError: () => toast.error('Failed to update zone'),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (zoneId: number) => safeZoneApi.deleteSafeZone({ petId: selectedPetId!, zoneId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', selectedPetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone deleted'); },
+    mutationFn: (zoneId: number) => safeZoneApi.deleteSafeZone({ petId: effectivePetId!, zoneId }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', effectivePetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone deleted'); },
     onError: () => toast.error('Failed to delete zone'),
   });
 
@@ -108,7 +99,7 @@ const MapPage: React.FC = () => {
   const center: [number, number] = hasLocation ? [telemetry!.latitude!, telemetry!.longitude!] : [44.4268, 26.1025];
   const lastUpdated = telemetry?.timestamp ? new Date(telemetry.timestamp).toLocaleString() : null;
   const isDrawing = isCreating || !!editingZone;
-  const selectedPet = pets.find(p => p.id === selectedPetId);
+  const selectedPet = pets.find(p => p.id === effectivePetId);
 
   return (
     <div className="flex h-[calc(100vh-5rem)]">
@@ -169,7 +160,7 @@ const MapPage: React.FC = () => {
         <div className="p-4 flex-1">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Safe Zones</h2>
-            {selectedPetId && !isDrawing && (
+            {effectivePetId && !isDrawing && (
               <button
                 onClick={() => { setIsCreating(true); setDrawnVertices([]); setNewZoneName(''); }}
                 className="flex items-center gap-1 text-xs bg-green-500 text-white px-2.5 py-1 rounded-full font-semibold hover:bg-green-600"
@@ -221,7 +212,7 @@ const MapPage: React.FC = () => {
           <ZoneDrawer active={isDrawing} onAdd={(lat, lng) => setDrawnVertices(v => [...v, { latitude: lat, longitude: lng }])} />
 
           {hasLocation && (
-            <Marker position={[telemetry!.latitude!, telemetry!.longitude!]} icon={greenIcon}>
+            <Marker position={[telemetry!.latitude!, telemetry!.longitude!]} icon={greenLeafletIcon}>
               <Popup>
                 <strong>{selectedPet?.name ?? 'Pet'}</strong>
                 {lastUpdated && <><br /><span className="text-xs text-gray-400">Updated: {lastUpdated}</span></>}

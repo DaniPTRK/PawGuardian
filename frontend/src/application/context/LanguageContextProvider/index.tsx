@@ -1,14 +1,7 @@
-import React, { createContext, useContext, useReducer, type ReactNode } from 'react';
+import React, { useReducer, type ReactNode } from 'react';
+import { LanguageContext, type LanguageState, type LanguageAction } from './LanguageContext';
 
-interface LanguageState {
-  language: string;
-}
-
-type LanguageAction = { type: 'SET_LANGUAGE'; payload: string };
-
-const initialState: LanguageState = {
-  language: 'en',
-};
+const initialState: LanguageState = { language: 'en' };
 
 function languageReducer(state: LanguageState, action: LanguageAction): LanguageState {
   switch (action.type) {
@@ -19,14 +12,8 @@ function languageReducer(state: LanguageState, action: LanguageAction): Language
   }
 }
 
-const LanguageContext = createContext<{
-  state: LanguageState;
-  dispatch: React.Dispatch<LanguageAction>;
-} | null>(null);
-
-export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(languageReducer, initialState);
-
   return (
     <LanguageContext.Provider value={{ state, dispatch }}>
       {children}
@@ -34,10 +21,4 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-export const useLanguage = () => {
-  const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
-  }
-  return context;
-};
+export default LanguageProvider;
