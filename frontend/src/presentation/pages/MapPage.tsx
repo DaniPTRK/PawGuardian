@@ -11,7 +11,7 @@ import { greenLeafletIcon } from '../../infrastructure/utils/mapUtils';
 const ZONE_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#f97316', '#ec4899'];
 
 
-// Clickable map component for drawing zone vertices
+// Clickable map component that lets users place zone vertices by clicking
 const ZoneDrawer: React.FC<{ onAdd: (lat: number, lng: number) => void; active: boolean }> = ({ onAdd, active }) => {
   useMapEvents({ click: (e) => { if (active) onAdd(e.latlng.lat, e.latlng.lng); } });
   return null;
@@ -57,24 +57,24 @@ const MapPage: React.FC = () => {
     refetchInterval: 30_000,
   });
 
-  const createMutation = useMutation({
+  const createZone = useMutation({
     mutationFn: (vars: { zoneName: string; vertices: { latitude: number; longitude: number }[] }) =>
       safeZoneApi.createSafeZone({ petId: effectivePetId!, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', effectivePetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone created'); resetDraw(); },
-    onError: () => toast.error('Failed to create zone'),
+    onError: () => toast.error('Could not save zone'),
   });
 
-  const updateMutation = useMutation({
+  const updateZone = useMutation({
     mutationFn: (vars: { zoneId: number; zoneName: string; vertices: { latitude: number; longitude: number }[] }) =>
       safeZoneApi.updateSafeZone({ petId: effectivePetId!, zoneId: vars.zoneId, safeZoneRequestDto: { zoneName: vars.zoneName, active: true, vertices: vars.vertices } }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', effectivePetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone updated'); resetDraw(); },
     onError: () => toast.error('Failed to update zone'),
   });
 
-  const deleteMutation = useMutation({
+  const deleteZone = useMutation({
     mutationFn: (zoneId: number) => safeZoneApi.deleteSafeZone({ petId: effectivePetId!, zoneId }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['safe-zones', effectivePetId] }); queryClient.invalidateQueries({ queryKey: ['geofence-check'] }); toast.success('Zone deleted'); },
-    onError: () => toast.error('Failed to delete zone'),
+    onError: () => toast.error('Something went wrong'),
   });
 
   const resetDraw = () => { setIsCreating(false); setEditingZone(null); setDrawnVertices([]); setNewZoneName(''); };
@@ -90,9 +90,9 @@ const MapPage: React.FC = () => {
     if (!newZoneName.trim()) { toast.error('Enter a zone name'); return; }
     if (drawnVertices.length < 3) { toast.error('Draw at least 3 points'); return; }
     if (editingZone?.id) {
-      updateMutation.mutate({ zoneId: editingZone.id, zoneName: newZoneName, vertices: drawnVertices });
+      updateZone.mutate({ zoneId: editingZone.id, zoneName: newZoneName, vertices: drawnVertices });
     } else {
-      createMutation.mutate({ zoneName: newZoneName, vertices: drawnVertices });
+      createZone.mutate({ zoneName: newZoneName, vertices: drawnVertices });
     }
   };
 
@@ -125,19 +125,6 @@ const MapPage: React.FC = () => {
             <p className="text-sm font-semibold text-gray-700 flex items-center gap-2"><PawPrint size={14} className="text-green-500" /> {selectedPet.name}</p>
           ) : null}
         </div>
-
-        {/* Geofence status banner */}
-        {hasLocation && zones.length > 0 && (
-          <div className={`mx-4 mt-4 p-3 rounded-xl text-sm font-medium flex items-center gap-2 ${
-            geofenceStatus?.insideSafeZone
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-600 border border-red-200'
-          }`}>
-            {geofenceStatus?.insideSafeZone
-              ? <><ShieldCheck size={16} /> {selectedPet?.name} is in <strong>{geofenceStatus.safeZoneName}</strong></>
-              : <><AlertTriangle size={16} /> {selectedPet?.name} is not in any safe zone</>}
-          </div>
-        )}
 
         {/* Location info */}
         <div className="p-4 border-b border-gray-100">
@@ -198,7 +185,7 @@ const MapPage: React.FC = () => {
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: ZONE_COLORS[idx % ZONE_COLORS.length] }} />
                 <span className="text-sm font-medium text-gray-700 flex-1 truncate">{zone.zoneName}</span>
                 <button onClick={() => startEdit(zone)} className="p-1 text-gray-400 hover:text-blue-500"><Pencil size={13} /></button>
-                <button onClick={() => zone.id && deleteMutation.mutate(zone.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+                <button onClick={() => zone.id && deleteZone.mutate(zone.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
               </div>
             ))}
           </div>

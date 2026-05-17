@@ -7,7 +7,6 @@ import { useOwnUser } from '../../../infrastructure/hooks/useOwnUser';
 import { ROUTES } from '../../../routes';
 import logo from '../../../assets/PawGuardian_logo.png';
 
-// general navbar items
 const baseNavItems = [
   { to: ROUTES.HOME,     label: 'Home',     Icon: Home },
   { to: ROUTES.MAP,      label: 'Map',      Icon: Map },
@@ -24,7 +23,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAdmin = user?.roles?.some(r => r.includes('ADMIN'));
   const isVet = user?.roles?.some(r => r.includes('VET'));
 
-  // Special navbar items
   const navItems = [
     ...baseNavItems,
     ...(isVet ? [{ to: ROUTES.VET, label: 'Patients', Icon: Stethoscope }] : []),

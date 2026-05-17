@@ -1,5 +1,5 @@
 /* tslint:disable */
- 
+/* eslint-disable */
 export * from './ApiResponseDto';
 export * from './DeviceRequestDto';
 export * from './DeviceResponseDto';

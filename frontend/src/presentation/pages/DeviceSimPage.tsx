@@ -9,8 +9,6 @@ import { petApi, deviceApi } from '../../infrastructure/apis/api-management';
 import { simulatorApi, type SimulatorStatus, type SimulatorReading } from '../../infrastructure/apis/simulator-api';
 import type { DeviceResponseDto } from '../../infrastructure/apis/client/models';
 
-const BACKEND_URL = 'http://192.168.0.2:8090';
-
 const DeviceSimPage: React.FC = () => {
   const { data: pets = [] } = useQuery({ queryKey: ['pets'], queryFn: () => petApi.getMyPets() });
 
@@ -83,7 +81,6 @@ const DeviceSimPage: React.FC = () => {
     }
     try {
       await simulatorApi.start({
-        backend_url: BACKEND_URL,
         pet_ids: petsWithDevices.map(p => p.petId),
         interval,
         base_lat: baseLat,
@@ -101,7 +98,6 @@ const DeviceSimPage: React.FC = () => {
     }
   };
 
-  // Stopping the simulator
   const handleStop = async () => {
     try {
       await simulatorApi.stop();
@@ -166,9 +162,6 @@ const DeviceSimPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-          <Radio size={20} className="text-indigo-500" />
-        </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Device Simulator [DEV]</h1>
           <p className="text-sm text-gray-400">Controls the telemetry simulator service</p>
@@ -361,4 +354,3 @@ const DeviceSimPage: React.FC = () => {
 };
 
 export default DeviceSimPage;
-

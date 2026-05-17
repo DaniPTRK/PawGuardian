@@ -33,10 +33,28 @@ export interface FeedbackRequestDto {
     rating: number;
     /**
      * 
+     * @type {string}
+     * @memberof FeedbackRequestDto
+     */
+    wouldRecommend: string;
+    /**
+     * 
      * @type {boolean}
      * @memberof FeedbackRequestDto
      */
-    subscribe?: boolean;
+    mailAccuracyGood?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof FeedbackRequestDto
+     */
+    experienceFriendly?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof FeedbackRequestDto
+     */
+    vetSatisfied?: boolean;
     /**
      * 
      * @type {string}
@@ -51,6 +69,7 @@ export interface FeedbackRequestDto {
 export function instanceOfFeedbackRequestDto(value: object): value is FeedbackRequestDto {
     if (!('category' in value) || value['category'] === undefined) return false;
     if (!('rating' in value) || value['rating'] === undefined) return false;
+    if (!('wouldRecommend' in value) || value['wouldRecommend'] === undefined) return false;
     if (!('message' in value) || value['message'] === undefined) return false;
     return true;
 }
@@ -67,7 +86,10 @@ export function FeedbackRequestDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         
         'category': json['category'],
         'rating': json['rating'],
-        'subscribe': json['subscribe'] == null ? undefined : json['subscribe'],
+        'wouldRecommend': json['wouldRecommend'],
+        'mailAccuracyGood': json['mailAccuracyGood'] == null ? undefined : json['mailAccuracyGood'],
+        'experienceFriendly': json['experienceFriendly'] == null ? undefined : json['experienceFriendly'],
+        'vetSatisfied': json['vetSatisfied'] == null ? undefined : json['vetSatisfied'],
         'message': json['message'],
     };
 }
@@ -85,7 +107,10 @@ export function FeedbackRequestDtoToJSONTyped(value?: FeedbackRequestDto | null,
         
         'category': value['category'],
         'rating': value['rating'],
-        'subscribe': value['subscribe'],
+        'wouldRecommend': value['wouldRecommend'],
+        'mailAccuracyGood': value['mailAccuracyGood'],
+        'experienceFriendly': value['experienceFriendly'],
+        'vetSatisfied': value['vetSatisfied'],
         'message': value['message'],
     };
 }

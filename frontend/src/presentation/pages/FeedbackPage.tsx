@@ -1,29 +1,107 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { CheckCircle, Send, Trash2 } from 'lucide-react';
+import { CheckCircle, Send, Trash2, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { feedbackApi } from '../../infrastructure/apis/api-management';
+import type { FeedbackResponseDto } from '../../infrastructure/apis/client/models';
 
-const API_BASE = 'http://192.168.0.2:8090';
-
-// What the feedback form contains
-type FeedbackItem = {
-  id: number;
-  userEmail: string;
-  category: string;
-  rating: number;
-  wouldRecommend: string;
-  mailAccuracyGood: boolean;
-  experienceFriendly: boolean;
-  vetSatisfied: boolean;
-  message: string;
-  createdAt: string;
+const CATEGORY_LABELS: Record<string, string> = {
+  mail_notifications: 'Mail Notifications',
+  user_experience: 'User Experience',
+  vet_service: 'Vet Service',
+  pet_monitoring: 'Pet Monitoring',
+  general: 'General',
 };
 
+const RECOMMEND_LABELS: Record<string, string> = {
+  yes: '👍 Yes',
+  maybe: 'Maybe',
+  no: '👎 No',
+};
+
+type FeedbackEntry = FeedbackResponseDto;
+
+const FeedbackCard: React.FC<{ fb: FeedbackEntry; onDelete: (id: number) => void; isDeleting: boolean }> = ({ fb, onDelete, isDeleting }) => {
+  const [expanded, setExpanded] = useState(false);
+  const rating = fb.rating ?? 0;
+
+  return (
+    <div className="border border-gray-100 rounded-xl overflow-hidden">
+      <div className="flex items-start gap-4 px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-sm font-semibold text-gray-800 truncate">{fb.userEmail ?? 'Anonymous'}</span>
+            {fb.category && (
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">
+                {CATEGORY_LABELS[fb.category] ?? fb.category}
+              </span>
+            )}
+            {fb.wouldRecommend && (
+              <span className="text-xs text-gray-500 shrink-0">
+                {RECOMMEND_LABELS[fb.wouldRecommend] ?? fb.wouldRecommend}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 mb-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={13}
+                className={i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}
+              />
+            ))}
+          </div>
+          <p className="text-sm text-gray-600 truncate">{fb.message}</p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 mt-0.5">
+          <span className="text-xs text-gray-400">
+            {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : '-'}
+          </span>
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+            title="Show details"
+          >
+            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </button>
+          <button
+            onClick={() => fb.id && onDelete(fb.id)}
+            disabled={isDeleting}
+            className="p-1 text-red-400 hover:text-red-600 rounded transition-colors disabled:opacity-40"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 space-y-2">
+          <p className="text-sm text-gray-700">{fb.message}</p>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Checkbox label="Email notifications accurate" checked={!!fb.mailAccuracyGood} />
+            <Checkbox label="Experience friendly" checked={!!fb.experienceFriendly} />
+            <Checkbox label="Satisfied with vet care" checked={!!fb.vetSatisfied} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Checkbox: React.FC<{ label: string; checked: boolean }> = ({ label, checked }) => (
+  <span className={`text-xs flex items-center gap-1.5 px-2 py-1 rounded-full border ${
+    checked ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'
+  }`}>
+    <span>{checked ? '✓' : '✗'}</span> {label}
+  </span>
+);
 const FeedbackPage: React.FC = () => {
   const { user } = useOwnUser();
   const isAdmin = user?.roles?.some(r => r.includes('ADMIN'));
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   const [form, setForm] = useState({
     category: '',
@@ -35,36 +113,42 @@ const FeedbackPage: React.FC = () => {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  // Admin: fetch all feedback
-  const { data: feedbackList = [] } = useQuery<FeedbackItem[]>({
+  const { data: feedbackList = [] } = useQuery<FeedbackResponseDto[]>({
     queryKey: ['admin-feedback'],
-    queryFn: async () => {
-      const token = localStorage.getItem('token') ?? '';
-      const res = await fetch(`${API_BASE}/api/v1/feedback`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed');
-      return res.json();
-    },
+    queryFn: () => feedbackApi.getAllFeedback(),
     enabled: !!isAdmin,
   });
 
-  const deleteFeedbackMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const token = localStorage.getItem('token') ?? '';
-      const res = await fetch(`${API_BASE}/api/v1/feedback/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed');
+  const submit = useMutation({
+    mutationFn: () => feedbackApi.submitFeedback({
+      feedbackRequestDto: {
+        category: form.category,
+        rating: parseInt(form.rating),
+        message: form.message,
+        wouldRecommend: form.wouldRecommend,
+        mailAccuracyGood: form.mailAccuracyGood,
+        experienceFriendly: form.experienceFriendly,
+        vetSatisfied: form.vetSatisfied,
+      },
+    }),
+    onSuccess: () => {
+      toast.success('Thank you for your feedback!');
+      setSubmitted(true);
+      if (isAdmin) queryClient.invalidateQueries({ queryKey: ['admin-feedback'] });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-feedback'] }); toast.success('Feedback deleted'); },
+    onError: () => toast.error('Something went wrong. Please try again.'),
+  });
+
+  const deleteFeedback = useMutation({
+    mutationFn: (id: number) => feedbackApi.deleteFeedback({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-feedback'] });
+      toast.success('Feedback deleted');
+    },
     onError: () => toast.error('Failed to delete feedback'),
   });
 
-  // Handlers for changes done to the form and submitting the form
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement;
     setForm(f => ({
@@ -73,40 +157,18 @@ const FeedbackPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.category || !form.rating || !form.wouldRecommend || !form.message) {
       toast.error('Please fill in all required fields');
       return;
     }
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token') ?? '';
-      const res = await fetch(`${API_BASE}/api/v1/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          category: form.category,
-          rating: parseInt(form.rating),
-          wouldRecommend: form.wouldRecommend,
-          mailAccuracyGood: form.mailAccuracyGood,
-          experienceFriendly: form.experienceFriendly,
-          vetSatisfied: form.vetSatisfied,
-          message: form.message,
-        }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      toast.success('Thank you for your feedback!');
-      setSubmitted(true);
-      if (isAdmin) qc.invalidateQueries({ queryKey: ['admin-feedback'] });
-    } catch {
-      toast.error('Failed to submit feedback. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    submit.mutate();
+  };
+
+  const resetForm = () => {
+    setSubmitted(false);
+    setForm({ category: '', rating: '', wouldRecommend: '', mailAccuracyGood: false, experienceFriendly: false, vetSatisfied: false, message: '' });
   };
 
   if (submitted) {
@@ -118,7 +180,7 @@ const FeedbackPage: React.FC = () => {
         <h2 className="text-xl font-bold text-gray-800 mb-2">Feedback Received!</h2>
         <p className="text-gray-400 text-sm">Thank you for helping us improve PawGuardian.</p>
         <button
-          onClick={() => { setSubmitted(false); setForm({ category: '', rating: '', wouldRecommend: '', mailAccuracyGood: false, experienceFriendly: false, vetSatisfied: false, message: '' }); }}
+          onClick={resetForm}
           className="mt-6 text-green-600 text-sm font-semibold hover:underline"
         >
           Submit another response
@@ -129,15 +191,12 @@ const FeedbackPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-
-      {/* Submit feedback form */}
       <div className="max-w-lg mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Feedback</h1>
         <p className="text-sm text-gray-500 mb-6">Help us improve PawGuardian - your opinion matters!</p>
 
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Select - Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 What aspect are you giving feedback on? <span className="text-red-400">*</span>
@@ -157,7 +216,6 @@ const FeedbackPage: React.FC = () => {
               </select>
             </div>
 
-            {/* Radio buttons - Overall Rating */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Overall Rating <span className="text-red-400">*</span>
@@ -173,19 +231,18 @@ const FeedbackPage: React.FC = () => {
                       onChange={handleChange}
                       className="accent-green-500 w-4 h-4"
                     />
-                    <span className="text-xs text-gray-600">{['😠','😕','😐','😊','😍'][Number(val)-1]} {val}</span>
+                    <span className="text-xs text-gray-600">{['⭐', '⭐', '⭐', '⭐', '⭐'][Number(val)-1]} {val}</span>
                   </label>
                 ))}
               </div>
             </div>
 
-            {/* Radio buttons - Would Recommend */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Would you recommend PawGuardian to a friend? <span className="text-red-400">*</span>
               </label>
               <div className="flex gap-6">
-                {[{ value: 'yes', label: '👍 Yes' }, { value: 'maybe', label: '🤔 Maybe' }, { value: 'no', label: '👎 No' }].map(opt => (
+                {[{ value: 'yes', label: '👍 Yes' }, { value: 'maybe', label: 'Maybe' }, { value: 'no', label: '👎 No' }].map(opt => (
                   <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -201,46 +258,26 @@ const FeedbackPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Checkboxes - Multiple aspects */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Please check all that apply:
               </label>
               <div className="space-y-2">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="mailAccuracyGood"
-                    checked={form.mailAccuracyGood}
-                    onChange={handleChange}
-                    className="accent-green-500 w-4 h-4"
-                  />
+                  <input type="checkbox" name="mailAccuracyGood" checked={form.mailAccuracyGood} onChange={handleChange} className="accent-green-500 w-4 h-4" />
                   <span className="text-sm text-gray-700">Email notifications are accurate and timely</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="experienceFriendly"
-                    checked={form.experienceFriendly}
-                    onChange={handleChange}
-                    className="accent-green-500 w-4 h-4"
-                  />
+                  <input type="checkbox" name="experienceFriendly" checked={form.experienceFriendly} onChange={handleChange} className="accent-green-500 w-4 h-4" />
                   <span className="text-sm text-gray-700">The platform experience is friendly and intuitive</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="vetSatisfied"
-                    checked={form.vetSatisfied}
-                    onChange={handleChange}
-                    className="accent-green-500 w-4 h-4"
-                  />
+                  <input type="checkbox" name="vetSatisfied" checked={form.vetSatisfied} onChange={handleChange} className="accent-green-500 w-4 h-4" />
                   <span className="text-sm text-gray-700">I am satisfied with the veterinary care assigned to my pets</span>
                 </label>
               </div>
             </div>
 
-            {/* Textarea */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Additional Comments <span className="text-red-400">*</span>
@@ -257,58 +294,36 @@ const FeedbackPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submit.isPending}
               className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <Send size={14} />
-              {loading ? 'Submitting...' : 'Submit Feedback'}
+              {submit.isPending ? 'Submitting...' : 'Submit Feedback'}
             </button>
           </form>
         </div>
       </div>
 
-      {/* Admin feedback table - shown below the form */}
       {isAdmin && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">All Submitted Feedback (Admin)</h2>
+        <div className="bg-white border border-gray-100 rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-800">All Submitted Feedback</h2>
+            <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+              {feedbackList.length} {feedbackList.length === 1 ? 'entry' : 'entries'}
+            </span>
+          </div>
           {feedbackList.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No feedback submitted yet.</p>
+            <p className="text-sm text-gray-400 text-center py-8">No feedback submitted yet.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-100">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
-                  <tr>
-                    <th className="px-4 py-3 text-left">User</th>
-                    <th className="px-4 py-3 text-left">Category</th>
-                    <th className="px-4 py-3 text-left">Rating</th>
-                    <th className="px-4 py-3 text-left">Recommend</th>
-                    <th className="px-4 py-3 text-left">Message</th>
-                    <th className="px-4 py-3 text-left">Date</th>
-                    <th className="px-4 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {feedbackList.map(fb => (
-                    <tr key={fb.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-600 text-xs">{fb.userEmail}</td>
-                      <td className="px-4 py-3"><span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">{fb.category}</span></td>
-                      <td className="px-4 py-3 text-gray-600">{'⭐'.repeat(fb.rating)}</td>
-                      <td className="px-4 py-3 text-gray-600 capitalize">{fb.wouldRecommend}</td>
-                      <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{fb.message}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : '-'}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => deleteFeedbackMutation.mutate(fb.id)}
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete feedback"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              {(feedbackList as FeedbackEntry[]).map(fb => (
+                <FeedbackCard
+                  key={fb.id}
+                  fb={fb}
+                  onDelete={id => deleteFeedback.mutate(id)}
+                  isDeleting={deleteFeedback.isPending}
+                />
+              ))}
             </div>
           )}
         </div>

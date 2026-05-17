@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import 'leaflet/dist/leaflet.css';
 import {
   ChevronDown, ChevronUp, Heart, Thermometer,
-  PawPrint, Stethoscope,
+  PawPrint,
 } from 'lucide-react';
 import { vetApi } from '../../infrastructure/apis/api-management';
 import { useOwnUser } from '../../infrastructure/hooks/useOwnUser';
@@ -146,7 +146,6 @@ const VetPatientsPage: React.FC = () => {
       <PageHeader
         title="My Patients"
         subtitle="View health, location, and status of assigned pets"
-        icon={<Stethoscope size={24} className="text-green-500" />}
       />
       <SearchInput
         value={search}

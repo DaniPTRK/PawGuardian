@@ -9,10 +9,9 @@ import { toChartData } from '../../infrastructure/utils/chartUtils';
 import { MetricChart, PetSelector, PageHeader, EmptyState } from '../components/ui';
 
 const HealthPage: React.FC = () => {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { data: pets = [] } = useQuery({ queryKey: ['pets'], queryFn: () => petApi.getMyPets() });
   const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
-  // fallback hook
   const effectivePetId = useMemo(
     () => selectedPetId ?? pets[0]?.id ?? null,
     [selectedPetId, pets]
@@ -33,15 +32,15 @@ const HealthPage: React.FC = () => {
     retry: false,
   });
 
-  const registerMutation = useMutation({
+  const registerDevice = useMutation({
     mutationFn: (dto: DeviceRequestDto) => deviceApi.registerDevice({ deviceRequestDto: dto }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['device', effectivePetId] }); toast.success('Device registered!'); setShowRegister(false); setDeviceForm({ serialNumber: '', model: '' }); },
-    onError: () => toast.error('Failed to register device'),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['device', effectivePetId] }); toast.success('Device registered!'); setShowRegister(false); setDeviceForm({ serialNumber: '', model: '' }); },
+    onError: () => toast.error('Could not register device'),
   });
 
-  const removeMutation = useMutation({
+  const unpairDevice = useMutation({
     mutationFn: (petId: number) => deviceApi.removeDevice({ petId }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['device', effectivePetId] }); toast.success('Device unpaired'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['device', effectivePetId] }); toast.success('Device unpaired'); },
     onError: () => toast.error('Failed to unpair device'),
   });
 
@@ -130,7 +129,7 @@ const HealthPage: React.FC = () => {
               ))}
             </div>
             <button
-              onClick={() => effectivePetId && removeMutation.mutate(effectivePetId)}
+              onClick={() => effectivePetId && unpairDevice.mutate(effectivePetId)}
               className="flex items-center gap-1.5 text-sm text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors border border-red-200"
             >
               <Unplug size={14} /> Unpair Device
@@ -145,7 +144,7 @@ const HealthPage: React.FC = () => {
               </button>
             ) : (
               <form
-                onSubmit={e => { e.preventDefault(); if (effectivePetId) registerMutation.mutate({ ...deviceForm, petId: effectivePetId }); }}
+                onSubmit={e => { e.preventDefault(); if (effectivePetId) registerDevice.mutate({ ...deviceForm, petId: effectivePetId }); }}
                 className="space-y-3 border border-gray-200 rounded-xl p-4"
               >
                 {(['serialNumber', 'model'] as const).map(field => (

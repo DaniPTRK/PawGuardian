@@ -1,5 +1,5 @@
 /* tslint:disable */
- 
+/* eslint-disable */
 export * from './AuthControllerApi';
 export * from './DeviceControllerApi';
 export * from './FeedbackControllerApi';

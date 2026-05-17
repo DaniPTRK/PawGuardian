@@ -36,7 +36,7 @@ _latest_readings = {}
 
 # Request / Response models
 class StartRequest(BaseModel):
-    backend_url: str = 'http://backend:8091'
+    backend_url: str = 'http://backend:8090'
     pet_ids: list[int]
     interval: int = 30
     base_lat: float = 44.4
@@ -197,7 +197,6 @@ def remove_pet(req: RemovePetRequest):
 
     return {'status': 'removed', 'pet_id': req.pet_id}
 
-# Recharge pet battery to a level (100% in this case)
 @app.post('/recharge/{pet_id}')
 def recharge(pet_id: int, level: int = 100):
     with _lock:

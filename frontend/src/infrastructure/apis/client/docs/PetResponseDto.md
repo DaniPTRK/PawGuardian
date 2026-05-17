@@ -12,6 +12,7 @@ Name | Type
 `breed` | string
 `age` | number
 `ownerEmail` | string
+`assignedVetIds` | Set&lt;number&gt;
 
 ## Example
 
@@ -26,6 +27,7 @@ const example = {
   "breed": null,
   "age": null,
   "ownerEmail": null,
+  "assignedVetIds": null,
 } satisfies PetResponseDto
 
 console.log(example)
