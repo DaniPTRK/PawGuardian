@@ -5,8 +5,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from './application/store';
 import { setUser, logout } from './application/state-slices/profile';
 import { userApi } from './infrastructure/apis/api-management';
+import { ROUTES } from './routes';
 import AppLayout from './presentation/layouts/AppLayout/index';
-import './App.css';
 
 const LoginPage = lazy(() => import('./presentation/pages/LoginPage'));
 const RegisterPage = lazy(() => import('./presentation/pages/RegisterPage'));
@@ -48,24 +48,24 @@ function App() {
       <Suspense fallback={<Loader />}>
         <Routes>
           {/* Public routes */}
-          <Route path="/login" element={!isAuthenticated ? <LoginPage />    : <Navigate to="/home" replace />} />
-          <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/home" replace />} />
-          <Route path="/" element={<Navigate to={isAuthenticated ? '/home' : '/login'} replace />} />
+          <Route path={ROUTES.LOGIN} element={!isAuthenticated ? <LoginPage /> : <Navigate to={ROUTES.HOME} replace />} />
+          <Route path={ROUTES.REGISTER} element={!isAuthenticated ? <RegisterPage /> : <Navigate to={ROUTES.HOME} replace />} />
+          <Route path="/" element={<Navigate to={isAuthenticated ? ROUTES.HOME : ROUTES.LOGIN} replace />} />
 
-          {/* Protected routes where user must be authenticated*/}
+          {/* User must be authenticated*/}
           {isAuthenticated ? (
             <>
-              <Route path="/home" element={<AppLayout><HomePage /></AppLayout>} />
-              <Route path="/dev-sim" element={<AppLayout><DeviceSimPage /></AppLayout>} />
-              <Route path="/users" element={<AppLayout><UsersPage /></AppLayout>} />
-              <Route path="/map" element={<AppLayout><MapPage /></AppLayout>} />
-              <Route path="/health" element={<AppLayout><HealthPage /></AppLayout>} />
-              <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
-              <Route path="/feedback" element={<AppLayout><FeedbackPage /></AppLayout>} />
-              <Route path = "/vet" element={<AppLayout><VetPatientsPage /></AppLayout>} />
+              <Route path={ROUTES.HOME} element={<AppLayout><HomePage /></AppLayout>} />
+              <Route path={ROUTES.DEV_SIM} element={<AppLayout><DeviceSimPage /></AppLayout>} />
+              <Route path={ROUTES.USERS} element={<AppLayout><UsersPage /></AppLayout>} />
+              <Route path={ROUTES.MAP} element={<AppLayout><MapPage /></AppLayout>} />
+              <Route path={ROUTES.HEALTH} element={<AppLayout><HealthPage /></AppLayout>} />
+              <Route path={ROUTES.PROFILE} element={<AppLayout><ProfilePage /></AppLayout>} />
+              <Route path={ROUTES.FEEDBACK} element={<AppLayout><FeedbackPage /></AppLayout>} />
+              <Route path={ROUTES.VET} element={<AppLayout><VetPatientsPage /></AppLayout>} />
             </>
           ) : (
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
           )}
         </Routes>
       </Suspense>

@@ -19,13 +19,48 @@ import { mapValues } from '../runtime';
  * @interface PetResponseDto
  */
 export interface PetResponseDto {
+    /**
+     * 
+     * @type {number}
+     * @memberof PetResponseDto
+     */
     id?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PetResponseDto
+     */
     name?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PetResponseDto
+     */
     species?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PetResponseDto
+     */
     breed?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof PetResponseDto
+     */
     age?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof PetResponseDto
+     */
     ownerEmail?: string;
-    assignedVetIds?: Array<number>;
+    /**
+     * 
+     * @type {Set<number>}
+     * @memberof PetResponseDto
+     */
+    assignedVetIds?: Set<number>;
 }
 
 /**
@@ -44,14 +79,14 @@ export function PetResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         return json;
     }
     return {
-
+        
         'id': json['id'] == null ? undefined : json['id'],
         'name': json['name'] == null ? undefined : json['name'],
         'species': json['species'] == null ? undefined : json['species'],
         'breed': json['breed'] == null ? undefined : json['breed'],
         'age': json['age'] == null ? undefined : json['age'],
         'ownerEmail': json['ownerEmail'] == null ? undefined : json['ownerEmail'],
-        'assignedVetIds': json['assignedVetIds'] == null ? undefined : json['assignedVetIds'],
+        'assignedVetIds': json['assignedVetIds'] == null ? undefined : new Set(json['assignedVetIds']),
     };
 }
 
@@ -72,7 +107,7 @@ export function PetResponseDtoToJSONTyped(value?: PetResponseDto | null, ignoreD
         'breed': value['breed'],
         'age': value['age'],
         'ownerEmail': value['ownerEmail'],
-        'assignedVetIds': value['assignedVetIds'],
+        'assignedVetIds': value['assignedVetIds'] == null ? undefined : Array.from(value['assignedVetIds'] as Set<any>),
     };
 }
 

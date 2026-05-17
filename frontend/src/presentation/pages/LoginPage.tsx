@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import logo from '../../assets/PawGuardian_logo.png';
+import { useAppRouter } from '../../infrastructure/hooks/useAppRouter';
 import { authApi, userApi } from '../../infrastructure/apis/api-management';
 import { setToken, setUser } from '../../application/state-slices/profile';
 
 const LoginPage: React.FC = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const { goToHome } = useAppRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,8 +25,8 @@ const LoginPage: React.FC = () => {
         try {
           const profile = await userApi.getMyProfile();
           dispatch(setUser({ id: profile.id, username: profile.username, email: profile.email, roles: profile.roles ? Array.from(profile.roles) : [] }));
-        } catch { /* non-critical */ }
-        navigate('/home');
+        } catch { /* ignore */ }
+        goToHome();
       }
     } catch {
       toast.error('Invalid email or password');
@@ -62,7 +63,7 @@ const LoginPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
             <div>

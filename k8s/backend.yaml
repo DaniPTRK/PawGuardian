@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: pawguardian
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      # Spread the 2 replicas across different nodes (one per worker)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: backend
+                topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 80
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: backend
+          image: daniptrk/pawguardian-backend:latest
+          ports:
+            - containerPort: 8090
+          env:
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/pawguardian
+            - name: DB_USERNAME
+              value: pawguardian
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pawguardian-secrets
+                  key: db-password
+            - name: MONGODB_URI
+              value: mongodb://mongodb:27017/pawguardian
+            - name: MAIL_HOST
+              value: sandbox.smtp.mailtrap.io
+            - name: MAIL_PORT
+              value: "2525"
+            - name: MAIL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: pawguardian-secrets
+                  key: mail-username
+            - name: MAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pawguardian-secrets
+                  key: mail-password
+            - name: GEOFENCE_COOLDOWN
+              value: "5"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8090
+            initialDelaySeconds: 60
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: pawguardian
+spec:
+  selector:
+    app: backend
+  type: NodePort
+  ports:
+    - port: 8090
+      targetPort: 8090
+      nodePort: 30090

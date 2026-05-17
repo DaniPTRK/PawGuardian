@@ -45,7 +45,7 @@ def fetch_token(backend_url, email, password):
             logger.info('Authenticated successfully.')
             return token
         else:
-            logger.warning(f'Login failed with status code {resp.status_code} — {resp.text[:200]}')
+            logger.warning(f'Login failed with status code {resp.status_code} {resp.text[:200]}')
     except requests.RequestException as e:
         logger.error(f'Login request failed: {e}')
     return None
@@ -186,9 +186,9 @@ def run_simulation(backend_url, pet_ids, interval = 30,
                                 f'Bat={reading["batteryLevel"]}% '
                                 f'({reading["latitude"]}, {reading["longitude"]})')
                 else:
-                    logger.warning(f'Pet {pid}: HTTP {resp.status_code} — {resp.text[:200]}')
+                    logger.warning(f'Pet {pid}: HTTP {resp.status_code} {resp.text[:200]}')
             except requests.RequestException as e:
-                logger.error(f'Pet {pid}: Failed to send — {e}')
+                logger.error(f'Pet {pid}: Failed to send {e}')
 
         time.sleep(interval)
 

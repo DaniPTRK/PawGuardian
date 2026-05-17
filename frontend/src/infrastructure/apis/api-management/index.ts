@@ -1,10 +1,10 @@
 import { Configuration } from '../client/runtime';
-import { AuthControllerApi, PetControllerApi, UserControllerApi, DeviceControllerApi, TelemetryControllerApi, SafeZoneControllerApi, VetControllerApi } from '../client/apis';
+import { AuthControllerApi, PetControllerApi, UserControllerApi, DeviceControllerApi, TelemetryControllerApi, SafeZoneControllerApi, VetControllerApi, SpeciesControllerApi, FeedbackControllerApi } from '../client/apis';
 
 const getToken = () => localStorage.getItem('token') ?? '';
 
 const config = new Configuration({
-  basePath: 'http://192.168.0.2:8090',
+  basePath: import.meta.env.VITE_API_BASE_URL ?? '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -18,4 +18,5 @@ export const deviceApi = new DeviceControllerApi(config);
 export const telemetryApi = new TelemetryControllerApi(config);
 export const safeZoneApi = new SafeZoneControllerApi(config);
 export const vetApi = new VetControllerApi(config);
-
+export const speciesApi = new SpeciesControllerApi(config);
+export const feedbackApi = new FeedbackControllerApi(config);

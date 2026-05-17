@@ -45,10 +45,28 @@ export interface FeedbackResponseDto {
     rating?: number;
     /**
      * 
+     * @type {string}
+     * @memberof FeedbackResponseDto
+     */
+    wouldRecommend?: string;
+    /**
+     * 
      * @type {boolean}
      * @memberof FeedbackResponseDto
      */
-    subscribe?: boolean;
+    mailAccuracyGood?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof FeedbackResponseDto
+     */
+    experienceFriendly?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof FeedbackResponseDto
+     */
+    vetSatisfied?: boolean;
     /**
      * 
      * @type {string}
@@ -84,7 +102,10 @@ export function FeedbackResponseDtoFromJSONTyped(json: any, ignoreDiscriminator:
         'userEmail': json['userEmail'] == null ? undefined : json['userEmail'],
         'category': json['category'] == null ? undefined : json['category'],
         'rating': json['rating'] == null ? undefined : json['rating'],
-        'subscribe': json['subscribe'] == null ? undefined : json['subscribe'],
+        'wouldRecommend': json['wouldRecommend'] == null ? undefined : json['wouldRecommend'],
+        'mailAccuracyGood': json['mailAccuracyGood'] == null ? undefined : json['mailAccuracyGood'],
+        'experienceFriendly': json['experienceFriendly'] == null ? undefined : json['experienceFriendly'],
+        'vetSatisfied': json['vetSatisfied'] == null ? undefined : json['vetSatisfied'],
         'message': json['message'] == null ? undefined : json['message'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
     };
@@ -105,7 +126,10 @@ export function FeedbackResponseDtoToJSONTyped(value?: FeedbackResponseDto | nul
         'userEmail': value['userEmail'],
         'category': value['category'],
         'rating': value['rating'],
-        'subscribe': value['subscribe'],
+        'wouldRecommend': value['wouldRecommend'],
+        'mailAccuracyGood': value['mailAccuracyGood'],
+        'experienceFriendly': value['experienceFriendly'],
+        'vetSatisfied': value['vetSatisfied'],
         'message': value['message'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
     };

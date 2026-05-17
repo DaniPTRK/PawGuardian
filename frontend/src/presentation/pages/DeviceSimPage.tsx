@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Radio, Play, Square, RotateCcw, BatteryCharging, PawPrint,
@@ -9,11 +9,10 @@ import { petApi, deviceApi } from '../../infrastructure/apis/api-management';
 import { simulatorApi, type SimulatorStatus, type SimulatorReading } from '../../infrastructure/apis/simulator-api';
 import type { DeviceResponseDto } from '../../infrastructure/apis/client/models';
 
-const BACKEND_URL = 'http://192.168.0.2:8090';
-
 const DeviceSimPage: React.FC = () => {
   const { data: pets = [] } = useQuery({ queryKey: ['pets'], queryFn: () => petApi.getMyPets() });
 
+  // Get all pets and their associated device
   const deviceQueries = useQuery({
     queryKey: ['pet-devices', pets.map(p => p.id).join(',')],
     queryFn: async () => {
@@ -47,36 +46,34 @@ const DeviceSimPage: React.FC = () => {
   const [pollError, setPollError] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll /status every 2s when running
-  const startPolling = () => {
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  }, []);
+
+  const startPolling = useCallback(() => {
     if (pollRef.current) return;
     pollRef.current = setInterval(async () => {
       try {
         const s = await simulatorApi.status();
         setSimStatus(s);
         setPollError(false);
-        // Stop polling if simulator reports it stopped
         if (!s.running) stopPolling();
       } catch {
         setPollError(true);
       }
     }, 2000);
-  };
-
-  const stopPolling = () => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-  };
+  }, [stopPolling]);
 
   useEffect(() => {
-    // On mount, check if simulator is already running
     simulatorApi.status().then(s => {
       setSimStatus(s);
       if (s.running) startPolling();
     }).catch(() => setPollError(true));
 
     return () => stopPolling();
-  }, []);
+  }, [startPolling, stopPolling]);
 
+  // Starting the simulator
   const handleStart = async () => {
     if (petsWithDevices.length === 0) {
       toast.error('No pets with registered devices found.');
@@ -84,7 +81,6 @@ const DeviceSimPage: React.FC = () => {
     }
     try {
       await simulatorApi.start({
-        backend_url: BACKEND_URL,
         pet_ids: petsWithDevices.map(p => p.petId),
         interval,
         base_lat: baseLat,
@@ -166,12 +162,9 @@ const DeviceSimPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-          <Radio size={20} className="text-indigo-500" />
-        </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Device Simulator [DEV]</h1>
-          <p className="text-sm text-gray-400">Controls the Python telemetry simulator service</p>
+          <p className="text-sm text-gray-400">Controls the telemetry simulator service</p>
         </div>
         {pollError && (
           <span className="ml-auto text-xs text-red-400 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
@@ -211,7 +204,7 @@ const DeviceSimPage: React.FC = () => {
           </div>
           <div className="col-span-2 md:col-span-1">
             <label className="block text-xs text-gray-400 mb-1">
-              Email <span className="text-gray-300">(optional — for species auto-detect)</span>
+              Email <span className="text-gray-300">(optional, used to detect animal species)</span>
             </label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={isRunning} placeholder="user@example.com"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none disabled:bg-gray-50" />
@@ -249,7 +242,7 @@ const DeviceSimPage: React.FC = () => {
         </p>
         {petsWithoutDevices.length > 0 && (
           <p className="text-yellow-500">
-            ⚠ {petsWithoutDevices.map(p => p.petName).join(', ')} — no device registered (skipped)
+            ⚠ {petsWithoutDevices.map(p => p.petName).join(', ')} - no device registered (skipped)
           </p>
         )}
       </div>
@@ -353,7 +346,7 @@ const DeviceSimPage: React.FC = () => {
         <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center">
           <Radio size={40} className="text-gray-200 mx-auto mb-4" />
           <p className="text-gray-400">Configure the parameters above and click <strong>Start Simulation</strong>.</p>
-          <p className="text-gray-300 text-sm mt-1">The Python simulator service will run in the background and post telemetry continuously.</p>
+          <p className="text-gray-300 text-sm mt-1">The simulator service will run in the background and post telemetry continuously.</p>
         </div>
       )}
     </div>
@@ -361,4 +354,3 @@ const DeviceSimPage: React.FC = () => {
 };
 
 export default DeviceSimPage;
-

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-simulator
+  namespace: pawguardian
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telemetry-simulator
+  template:
+    metadata:
+      labels:
+        app: telemetry-simulator
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 80
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      containers:
+        - name: telemetry-simulator
+          image: daniptrk/pawguardian-telemetry-simulator:latest
+          ports:
+            - containerPort: 8091
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemetry-simulator
+  namespace: pawguardian
+spec:
+  selector:
+    app: telemetry-simulator
+  type: NodePort
+  ports:
+    - port: 8091
+      targetPort: 8091
+      nodePort: 30091

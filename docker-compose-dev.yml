@@ -1,0 +1,239 @@
+version: "3.8"
+
+services:
+  # Database (manager)
+  postgres:
+    image: postgres:13.2-alpine
+    environment:
+      POSTGRES_USER: pawguardian
+      POSTGRES_DB: pawguardian
+      POSTGRES_PASSWORD: pawguardian
+    volumes:
+      - postgres-vol:/var/lib/postgresql/data
+    networks:
+      - database-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U pawguardian -d pawguardian" ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongo-vol:/data/db
+    networks:
+      - database-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+  # Database utils (manager)
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pawguardian.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    networks:
+      - database-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    ports:
+      - target: 80
+        published: 5050
+        protocol: tcp
+        mode: host
+
+  # Backend module using springboot (2 managers)
+  backend:
+    image: daniptrk/pawguardian-backend:latest
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/pawguardian
+      DB_USERNAME: pawguardian
+      DB_PASSWORD: pawguardian
+      MONGODB_URI: mongodb://mongodb:27017/pawguardian
+      SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT: -1
+      SPRING_FLYWAY_CONNECT_RETRIES: 10
+      SPRING_FLYWAY_CONNECT_RETRIES_INTERVAL: 10
+      MAIL_HOST: ${MAIL_HOST:-sandbox.smtp.mailtrap.io}
+      MAIL_PORT: ${MAIL_PORT:-2525}
+      MAIL_USERNAME_FILE: /run/secrets/mail_username
+      MAIL_PASSWORD_FILE: /run/secrets/mail_password
+      GEOFENCE_COOLDOWN: ${GEOFENCE_COOLDOWN:-5}
+    secrets:
+      - mail_username
+      - mail_password
+    networks:
+      - backend-network
+      - database-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+        max_replicas_per_node: 1
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 10
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+    ports:
+      - target: 8090
+        published: 8090
+        protocol: tcp
+        mode: ingress
+
+  # Frontend (managers)
+  frontend:
+    image: daniptrk/pawguardian-frontend:latest
+    networks:
+      - backend-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+        max_replicas_per_node: 1
+      restart_policy:
+        condition: on-failure
+    ports:
+      - target: 80
+        published: 3000
+        protocol: tcp
+        mode: ingress
+
+  # Telemetry simulator (managers)
+  telemetry-simulator:
+    image: daniptrk/pawguardian-telemetry-simulator:latest
+    networks:
+      - backend-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+    ports:
+      - target: 8091
+        published: 8091
+        protocol: tcp
+        mode: ingress
+
+  # Kong API gateway (managers proxy traffic)
+  kong:
+    image: kong:3.6
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: "0.0.0.0:8000"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_LOG_LEVEL: info
+    volumes:
+      - ./infra/kong/kong.yml:/etc/kong/kong.yml:ro
+    networks:
+      - backend-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+        max_replicas_per_node: 1
+    ports:
+      - target: 8000
+        published: 8000
+        protocol: tcp
+        mode: ingress
+      - target: 8001
+        published: 8001
+        protocol: tcp
+        mode: host
+
+  # Portainer (stays on manager for docker.sock)
+  portainer:
+    image: portainer/portainer-ce:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-vol:/data
+    networks:
+      - backend-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    ports:
+      - target: 9000
+        published: 9000
+        protocol: tcp
+        mode: host
+
+  # Prometheus (manager, scrapes metrics, needs stable address)
+  prometheus:
+    image: prom/prometheus:latest
+    command: --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-vol:/prometheus
+    networks:
+      - monitoring-network
+      - backend-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    ports:
+      - target: 9090
+        published: 9090
+        protocol: tcp
+        mode: host
+
+  # Grafana (manager)
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - grafana-vol:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - monitoring-network
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    ports:
+      - target: 3000
+        published: 3001
+        protocol: tcp
+        mode: host
+
+volumes:
+  postgres-vol:
+  mongo-vol:
+  portainer-vol:
+  grafana-vol:
+  prometheus-vol:
+
+networks:
+  database-network:
+    driver: overlay
+    attachable: true
+  backend-network:
+    driver: overlay
+    attachable: true
+  monitoring-network:
+    driver: overlay
+    attachable: true
+
+secrets:
+  mail_username:
+    external: true
+  mail_password:
+    external: true

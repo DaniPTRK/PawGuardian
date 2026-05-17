@@ -3,7 +3,7 @@
  * The simulator runs as a FastAPI service on port 8091.
  */
 
-const SIMULATOR_URL = 'http://192.168.0.2:8091';
+const SIMULATOR_URL = import.meta.env.VITE_SIMULATOR_BASE_URL || '/simulator';
 
 export interface SimulatorStartRequest {
   backend_url?: string;
@@ -73,4 +73,3 @@ export const simulatorApi = {
   recharge: (petId: number, level = 100) =>
     post(`/recharge/${petId}?level=${level}`),
 };
-

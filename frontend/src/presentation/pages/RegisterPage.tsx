@@ -1,26 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { Check, X } from 'lucide-react';
 import { authApi, userApi } from '../../infrastructure/apis/api-management';
 import { setToken, setUser } from '../../application/state-slices/profile';
+import { useAppRouter } from '../../infrastructure/hooks/useAppRouter';
+import { extractErrorMessage } from '../../application/models/ErrorResponse';
+import PasswordRules from '../components/ui/PasswordRules';
 import logo from "../../assets/PawGuardian_logo.png";
 
-const pwRules = (pw: string) => ({
-  minLength: pw.length >= 8,
-  hasUpper: /[A-Z]/.test(pw),
-  hasDigit: /\d/.test(pw),
-  hasSpecial: /[^A-Za-z0-9]/.test(pw),
-});
 
 const RegisterPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { goToHome, goToLogin } = useAppRouter();
   const dispatch = useDispatch();
   const [form, setForm] = useState({ email: '', username: '', password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
-
-  const rules = pwRules(form.password);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -42,21 +36,13 @@ const RegisterPage: React.FC = () => {
           dispatch(setUser({ id: profile.id, username: profile.username, email: profile.email, roles: profile.roles ? Array.from(profile.roles) : [] }));
         } catch { /* non-critical */ }
         toast.success('Account created! Welcome!');
-        navigate('/home');
+        goToHome();
       } else {
         toast.success('Account created! Please sign in.');
-        navigate('/login');
+        goToLogin();
       }
     } catch (err: unknown) {
-      let message = 'Registration failed. Please try again.';
-      try {
-        // Try to parse the backend error response body
-        const res = err as { status?: number; json?: () => Promise<{ message?: string }> };
-        if (res.json) {
-          const body = await res.json();
-          if (body?.message) message = body.message;
-        }
-      } catch { /* ignore parse errors */ }
+      const message = await extractErrorMessage(err, 'Registration failed. Please try again.');
       toast.error(message, { duration: 5000 });
     } finally {
       setLoading(false);
@@ -88,7 +74,7 @@ const RegisterPage: React.FC = () => {
                 value={form.email}
                 onChange={handleChange}
                 placeholder="your.email@example.com"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -114,20 +100,7 @@ const RegisterPage: React.FC = () => {
                 placeholder="Enter your password"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
               />
-              {form.password && (
-                <ul className="mt-2 space-y-0.5 text-xs">
-                  {[
-                    { ok: rules.minLength, label: 'At least 8 characters' },
-                    { ok: rules.hasUpper, label: 'At least one uppercase letter' },
-                    { ok: rules.hasDigit, label: 'At least one digit' },
-                    { ok: rules.hasSpecial, label: 'At least one special character (!@#$...)' },
-                  ].map(r => (
-                    <li key={r.label} className={`flex items-center gap-1.5 ${r.ok ? 'text-green-500' : 'text-gray-400'}`}>
-                      {r.ok ? <Check size={12} /> : <X size={12} />} {r.label}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <PasswordRules password={form.password} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>

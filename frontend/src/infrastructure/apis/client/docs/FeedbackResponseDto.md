@@ -10,7 +10,10 @@ Name | Type
 `userEmail` | string
 `category` | string
 `rating` | number
-`subscribe` | boolean
+`wouldRecommend` | string
+`mailAccuracyGood` | boolean
+`experienceFriendly` | boolean
+`vetSatisfied` | boolean
 `message` | string
 `createdAt` | Date
 
@@ -25,7 +28,10 @@ const example = {
   "userEmail": null,
   "category": null,
   "rating": null,
-  "subscribe": null,
+  "wouldRecommend": null,
+  "mailAccuracyGood": null,
+  "experienceFriendly": null,
+  "vetSatisfied": null,
   "message": null,
   "createdAt": null,
 } satisfies FeedbackResponseDto

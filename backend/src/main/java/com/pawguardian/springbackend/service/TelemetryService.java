@@ -46,6 +46,7 @@ public class TelemetryService {
                 .longitude(dto.getLongitude())
                 .heartRate(dto.getHeartRate())
                 .temperature(dto.getTemperature())
+                .batteryLevel(dto.getBatteryLevel())
                 .timestamp(dto.getTimestamp() != null
                         ? dto.getTimestamp().atZone(ZoneId.systemDefault()).toInstant()
                         : Instant.now())
@@ -132,7 +133,7 @@ public class TelemetryService {
         }
     }
 
-    private HealthMetricDto mapToDto(HealthMetric metric, Integer batteryLevel) {
+    private HealthMetricDto mapToDto(HealthMetric metric, Integer currentDeviceBattery) {
         return HealthMetricDto.builder()
                 .id(metric.getId())
                 .petId(metric.getPetId())
@@ -140,7 +141,7 @@ public class TelemetryService {
                 .longitude(metric.getLongitude())
                 .heartRate(metric.getHeartRate())
                 .temperature(metric.getTemperature())
-                .batteryLevel(batteryLevel)
+                .batteryLevel(metric.getBatteryLevel() != null ? metric.getBatteryLevel() : currentDeviceBattery)
                 .timestamp(metric.getTimestamp() != null
                         ? LocalDateTime.ofInstant(metric.getTimestamp(), ZoneId.systemDefault())
                         : null)

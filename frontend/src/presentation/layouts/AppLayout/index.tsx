@@ -4,28 +4,30 @@ import { useDispatch } from 'react-redux';
 import { Home, Map, Activity, User, MessageSquare, LogOut, Shield, Stethoscope, Radio } from 'lucide-react';
 import { logout } from '../../../application/state-slices/profile';
 import { useOwnUser } from '../../../infrastructure/hooks/useOwnUser';
+import { ROUTES } from '../../../routes';
 import logo from '../../../assets/PawGuardian_logo.png';
 
 const baseNavItems = [
-  { to: '/home',     label: 'Home',     Icon: Home },
-  { to: '/map',      label: 'Map',      Icon: Map },
-  { to: '/health',   label: 'Health',   Icon: Activity },
-  { to: '/dev-sim', label: 'DevSim', Icon: Radio },
-  { to: '/profile',  label: 'Profile',  Icon: User },
-  { to: '/feedback', label: 'Feedback', Icon: MessageSquare },
+  { to: ROUTES.HOME,     label: 'Home',     Icon: Home },
+  { to: ROUTES.MAP,      label: 'Map',      Icon: Map },
+  { to: ROUTES.HEALTH,   label: 'Health',   Icon: Activity },
+  { to: ROUTES.PROFILE,  label: 'Profile',  Icon: User },
+  { to: ROUTES.FEEDBACK, label: 'Feedback', Icon: MessageSquare },
 ];
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const dispatch = useDispatch();
   const { user } = useOwnUser();
 
+
   const isAdmin = user?.roles?.some(r => r.includes('ADMIN'));
   const isVet = user?.roles?.some(r => r.includes('VET'));
 
   const navItems = [
     ...baseNavItems,
-    ...(isVet ? [{ to: '/vet', label: 'Patients', Icon: Stethoscope }] : []),
-    ...(isAdmin ? [{ to: '/users', label: 'Admin', Icon: Shield }] : []),
+    ...(isVet ? [{ to: ROUTES.VET, label: 'Patients', Icon: Stethoscope }] : []),
+    ...(isAdmin ? [{ to: ROUTES.USERS, label: 'Admin', Icon: Shield }] : []),
+    { to: ROUTES.DEV_SIM, label: 'DevSim', Icon: Radio },
   ];
 
   return (

@@ -8,7 +8,10 @@ Name | Type
 ------------ | -------------
 `category` | string
 `rating` | number
-`subscribe` | boolean
+`wouldRecommend` | string
+`mailAccuracyGood` | boolean
+`experienceFriendly` | boolean
+`vetSatisfied` | boolean
 `message` | string
 
 ## Example
@@ -20,7 +23,10 @@ import type { FeedbackRequestDto } from ''
 const example = {
   "category": null,
   "rating": null,
-  "subscribe": null,
+  "wouldRecommend": null,
+  "mailAccuracyGood": null,
+  "experienceFriendly": null,
+  "vetSatisfied": null,
   "message": null,
 } satisfies FeedbackRequestDto
 
