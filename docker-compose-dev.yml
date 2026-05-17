@@ -48,7 +48,7 @@ services:
         protocol: tcp
         mode: host
 
-  # Backend module using springboot (2 workers)
+  # Backend module using springboot (2 managers)
   backend:
     image: daniptrk/pawguardian-backend:latest
     environment:
@@ -71,9 +71,9 @@ services:
       - backend-network
       - database-network
     deploy:
-      replicas: 2
+      replicas: 1
       placement:
-        constraints: [node.role == worker]
+        constraints: [node.role == manager]
         max_replicas_per_node: 1
       restart_policy:
         condition: on-failure
@@ -89,15 +89,15 @@ services:
         protocol: tcp
         mode: ingress
 
-  # Frontend (workers)
+  # Frontend (managers)
   frontend:
     image: daniptrk/pawguardian-frontend:latest
     networks:
       - backend-network
     deploy:
-      replicas: 2
+      replicas: 1
       placement:
-        constraints: [node.role == worker]
+        constraints: [node.role == manager]
         max_replicas_per_node: 1
       restart_policy:
         condition: on-failure
@@ -107,7 +107,7 @@ services:
         protocol: tcp
         mode: ingress
 
-  # Telemetry simulator (workers)
+  # Telemetry simulator (managers)
   telemetry-simulator:
     image: daniptrk/pawguardian-telemetry-simulator:latest
     networks:
@@ -115,7 +115,7 @@ services:
     deploy:
       replicas: 1
       placement:
-        constraints: [node.role == worker]
+        constraints: [node.role == manager]
       restart_policy:
         condition: on-failure
         delay: 30s
@@ -125,7 +125,7 @@ services:
         protocol: tcp
         mode: ingress
 
-  # Kong API gateway (workers proxy traffic)
+  # Kong API gateway (managers proxy traffic)
   kong:
     image: kong:3.6
     environment:
@@ -143,9 +143,9 @@ services:
     networks:
       - backend-network
     deploy:
-      replicas: 2
+      replicas: 1
       placement:
-        constraints: [node.role == worker]
+        constraints: [node.role == manager]
         max_replicas_per_node: 1
     ports:
       - target: 8000

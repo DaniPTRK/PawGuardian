@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portainer-pvc
+  namespace: pawguardian
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portainer
+  namespace: pawguardian
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portainer
+  template:
+    metadata:
+      labels:
+        app: portainer
+    spec:
+      serviceAccountName: portainer-sa
+      containers:
+        - name: portainer
+          image: portainer/portainer-ce:latest
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - mountPath: /data
+              name: portainer-storage
+      volumes:
+        - name: portainer-storage
+          persistentVolumeClaim:
+            claimName: portainer-pvc
+---
+# ServiceAccount so Portainer can observe the cluster
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: portainer-sa
+  namespace: pawguardian
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: portainer-crb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: portainer-sa
+    namespace: pawguardian
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portainer
+  namespace: pawguardian
+spec:
+  selector:
+    app: portainer
+  type: NodePort
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30900
+
