@@ -23,6 +23,7 @@ public class HealthMetric {
 
     private Double heartRate;
     private Double temperature;
+    private Integer batteryLevel;
 
     // GPS coordinates for geofencing
     private Double latitude;
